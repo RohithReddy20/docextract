@@ -1,0 +1,79 @@
+{
+  "version": "authored-model-trial/1",
+  "trial": "source-proposals-v4",
+  "population": "24 authored diagnostics: 12 development, 12 holdout variants; not ExtractBench",
+  "source_bundle_sha256": "49579cb952f74a0261b78771cfc5384079473ccf61621f622a83c9fd541c94f5",
+  "model_selected": null,
+  "local_model_downloads": false,
+  "modal_used": false,
+  "wall_seconds_per_arm": {
+    "a-bindings": 1243,
+    "b-bindings": 1243
+  },
+  "arms": {
+    "a": {
+      "identity": {
+        "model": "Qwen/Qwen3.5-4B",
+        "revision": "bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "generation": {
+          "max_input_tokens": 6144,
+          "max_new_tokens": 1536
+        },
+        "prompt_version": "source-proposals/3"
+      },
+      "model_calls": 24,
+      "input_tokens": 69165,
+      "output_tokens": 7857,
+      "generation_seconds": 675.6,
+      "max_input_tokens": 4111,
+      "peak_reserved_bytes": 13612613632,
+      "exact_documents": 12,
+      "schema_valid_documents": 16,
+      "development_exact": 6,
+      "holdout_exact": 6,
+      "by_family": {
+        "continuation": 0,
+        "narrative": 0,
+        "nested": 0,
+        "presence": 4,
+        "sparse": 4,
+        "tables": 4
+      }
+    },
+    "b": {
+      "identity": {
+        "model": "numind/NuExtract3",
+        "revision": "9968a5bd4cf562d3700a57dad097be2b6dfee34b",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "generation": {
+          "max_input_tokens": 6144,
+          "max_new_tokens": 1536
+        },
+        "prompt_version": "source-proposals/3"
+      },
+      "model_calls": 24,
+      "input_tokens": 81887,
+      "output_tokens": 12216,
+      "generation_seconds": 1068.0,
+      "max_input_tokens": 4944,
+      "peak_reserved_bytes": 13860077568,
+      "exact_documents": 12,
+      "schema_valid_documents": 16,
+      "development_exact": 6,
+      "holdout_exact": 6,
+      "by_family": {
+        "continuation": 0,
+        "narrative": 0,
+        "nested": 0,
+        "presence": 4,
+        "sparse": 4,
+        "tables": 4
+      }
+    }
+  }
+}

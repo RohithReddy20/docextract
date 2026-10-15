@@ -1,0 +1,26 @@
+{
+  "final": false,
+  "name": "l4-probe-2",
+  "note": "Window size (cells per window) on table documents; page-image size on the tax return. Seen documents only.",
+  "arm": "a",
+  "dtype": "bfloat16",
+  "ids": ["3ebc7d2a244ed35f", "ef25157cab7c3294", "6515905fadabc4b7", "5b7539059de4a241", "f7534076afef33b1", "f507d12e361b2e50", "b80b9d1450927196"],
+  "shards": 1,
+  "gpu_hours": 0.75,
+  "prepare_hours": 0.25,
+  "score_hours": 0.25,
+  "max_window_chars": 24000,
+  "max_schema_chars": 24000,
+  "max_new_tokens": 6144,
+  "max_model_len": 32768,
+  "max_num_seqs": 64,
+  "gpu_memory_utilization": 0.92,
+  "ocr": "doctr",
+  "speculative_tokens": 2,
+  "variants": [
+    {"name": "base", "protocol": "values", "page_images": true, "route_groups": true, "prompt_budget_chars": 72000, "factor_notes": true, "merge_entities": true},
+    {"name": "units400", "protocol": "values", "page_images": true, "route_groups": true, "prompt_budget_chars": 72000, "factor_notes": true, "merge_entities": true, "max_window_units": 400},
+    {"name": "img768", "protocol": "values", "page_images": true, "page_image_side": 768, "route_groups": true, "prompt_budget_chars": 72000, "factor_notes": true, "merge_entities": true},
+    {"name": "noimg", "protocol": "values", "route_groups": true, "prompt_budget_chars": 72000, "factor_notes": true, "merge_entities": true}
+  ]
+}

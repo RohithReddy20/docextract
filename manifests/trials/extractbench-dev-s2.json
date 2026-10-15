@@ -1,0 +1,37 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "eb-dev-s2",
+  "population": "10 development documents (seen): the 4 medium ones and 6 short scanned forms",
+  "source_bundle_sha256": "1bee455401e99906df3590ac000e69dad1f0875c07f35b20a2fe1d8ff104691e",
+  "settings": "plain values, page images, route_groups, prompt_budget_chars 72000, max_schema_chars 24000, MTP 2 on both T4s, balanced shards, compiled kernels restored from s1",
+  "session_seconds": 4341.9,
+  "value_f1_mean": 0.6824,
+  "value_f1_by_document": {
+    "c28c71081cb0124b": 0.9074,
+    "5456be9d8b189deb": 0.9074,
+    "8396c2f119ce2b23": 0.5472,
+    "0280970b03b14a41": 0.4733,
+    "c5c2fc4d2c674bb0": 0.8929,
+    "9b2ff0682c67dbc5": 0.5345,
+    "b80b9d1450927196": 0.8742,
+    "fb180e0b6c04ae91": 0.4651,
+    "f507d12e361b2e50": 0.5549,
+    "bff9fbe9936a6d4d": 0.6667
+  },
+  "v4_same_documents": {
+    "b80b9d1450927196": 0.689,
+    "fb180e0b6c04ae91": 0.0,
+    "f507d12e361b2e50": 0.0,
+    "bff9fbe9936a6d4d": 0.667,
+    "c28c71081cb0124b": 0.604,
+    "5456be9d8b189deb": 0.704,
+    "8396c2f119ce2b23": 0.558,
+    "0280970b03b14a41": 0.638,
+    "c5c2fc4d2c674bb0": 0.333,
+    "9b2ff0682c67dbc5": 0.571
+  },
+  "local_follow_ups": {
+    "merge_entities": "0.6824 -> 0.7050 (valuation report 0.473 -> 0.699: a summary table and later detail blocks described the same 5 vehicles); no change on any of the 16 s1 documents",
+    "word_breaks": "PDFium marks word gaps in text without space glyphs by generated spaces with empty boxes, which were dropped: the 44-page fund report kept 33% of its words' breaks, a W2 72%, a 1099-B 81%; fixed (adapter native/4)"
+  }
+}

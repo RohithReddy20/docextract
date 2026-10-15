@@ -1,0 +1,162 @@
+{
+  "version": "workload-inventory/1",
+  "dataset_revision": "51bf3a03eb7feeaef8952be1fc2fc7f924ee72dc",
+  "content_exported": false,
+  "tokenizer": "Qwen/Qwen3.5-4B tokenizer.json at the pinned model revision (remote only)",
+  "tokenizer_sha256": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+  "notes": "Native text from PDFium 4.30.0; compact evidence is the cited-protocol rendering; expected JSON tokens count the answer key only to forecast output volume and are never shown to inference.",
+  "splits": {
+    "short": {
+      "documents": 252,
+      "pages": 615,
+      "pages_without_native_text": 226,
+      "documents_fully_image_only": 101,
+      "documents_partly_image_only": 0,
+      "documents_schema_over_12k_tokens": 37,
+      "compact_evidence_tokens": {
+        "p50": 1262,
+        "p90": 7278,
+        "max": 37982,
+        "sum": 714064
+      },
+      "schema_tokens": {
+        "p50": 5001,
+        "p90": 13272,
+        "max": 157639,
+        "sum": 2641291
+      },
+      "expected_json_tokens": {
+        "p50": 871,
+        "p90": 4070,
+        "max": 40426,
+        "sum": 563192
+      },
+      "expected_records": {
+        "p50": 3,
+        "p90": 39,
+        "max": 308,
+        "sum": 4549
+      },
+      "parse_seconds": {
+        "p50": 0.098,
+        "p90": 0.491,
+        "max": 1.978,
+        "sum": 45.6
+      }
+    },
+    "medium": {
+      "documents": 98,
+      "pages": 2438,
+      "pages_without_native_text": 627,
+      "documents_fully_image_only": 26,
+      "documents_partly_image_only": 8,
+      "documents_schema_over_12k_tokens": 17,
+      "compact_evidence_tokens": {
+        "p50": 20392,
+        "p90": 60867,
+        "max": 150033,
+        "sum": 2556651
+      },
+      "schema_tokens": {
+        "p50": 4015,
+        "p90": 154822,
+        "max": 157639,
+        "sum": 2486634
+      },
+      "expected_json_tokens": {
+        "p50": 6443,
+        "p90": 53208,
+        "max": 157566,
+        "sum": 1688673
+      },
+      "expected_records": {
+        "p50": 24,
+        "p90": 425,
+        "max": 1223,
+        "sum": 13401
+      },
+      "parse_seconds": {
+        "p50": 2.01,
+        "p90": 4.411,
+        "max": 11.48,
+        "sum": 212.3
+      }
+    },
+    "long": {
+      "documents": 20,
+      "pages": 1816,
+      "pages_without_native_text": 335,
+      "documents_fully_image_only": 3,
+      "documents_partly_image_only": 3,
+      "documents_schema_over_12k_tokens": 2,
+      "compact_evidence_tokens": {
+        "p50": 134422,
+        "p90": 667154,
+        "max": 835575,
+        "sum": 4379305
+      },
+      "schema_tokens": {
+        "p50": 969,
+        "p90": 12486,
+        "max": 12486,
+        "sum": 56310
+      },
+      "expected_json_tokens": {
+        "p50": 216609,
+        "p90": 711589,
+        "max": 887274,
+        "sum": 6216779
+      },
+      "expected_records": {
+        "p50": 1769,
+        "p90": 14852,
+        "max": 26725,
+        "sum": 89770
+      },
+      "parse_seconds": {
+        "p50": 13.578,
+        "p90": 67.279,
+        "max": 80.121,
+        "sum": 374.0
+      }
+    },
+    "all": {
+      "documents": 370,
+      "pages": 4869,
+      "pages_without_native_text": 1188,
+      "documents_fully_image_only": 130,
+      "documents_partly_image_only": 11,
+      "documents_schema_over_12k_tokens": 56,
+      "compact_evidence_tokens": {
+        "p50": 1981,
+        "p90": 36872,
+        "max": 835575,
+        "sum": 7650020
+      },
+      "schema_tokens": {
+        "p50": 4623,
+        "p90": 13272,
+        "max": 157639,
+        "sum": 5184235
+      },
+      "expected_json_tokens": {
+        "p50": 1348,
+        "p90": 25007,
+        "max": 887274,
+        "sum": 8468644
+      },
+      "expected_records": {
+        "p50": 9,
+        "p90": 238,
+        "max": 26725,
+        "sum": 107720
+      },
+      "parse_seconds": {
+        "p50": 0.15,
+        "p90": 3.376,
+        "max": 80.121,
+        "sum": 631.8
+      }
+    }
+  }
+}

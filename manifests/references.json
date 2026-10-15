@@ -1,0 +1,31 @@
+{
+  "docparse": {
+    "repository": "https://github.com/RohithReddy20/docparse",
+    "commit": "9451b48e0db028053bdf150be79fdd2b69eed04f",
+    "adapter_contract": "parse-snapshot/1",
+    "runtime_installed": false
+  },
+  "extractbench": {
+    "repository": "https://github.com/run-llama/ExtractBench",
+    "commit": "0e7647997211867060a645ac82deb9f7bc4a3b3f",
+    "parse_bench_version": "1.0.4"
+  },
+  "dataset": {
+    "repository": "llamaindex/ExtractBench",
+    "revision": "51bf3a03eb7feeaef8952be1fc2fc7f924ee72dc",
+    "local_data_downloaded": false
+  },
+  "models": {
+    "selected": null,
+    "research_receipt": "model-research.json",
+    "weights_downloaded_locally": false,
+    "weights_downloaded_on_kaggle": true,
+    "measured_trials": [
+      "trials/native-values-v1.json",
+      "trials/source-proposals-v2.json",
+      "trials/source-proposals-v3.json",
+      "trials/source-proposals-v4.json",
+      "trials/cited-values-v1.json"
+    ]
+  }
+}

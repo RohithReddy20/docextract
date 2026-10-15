@@ -1,0 +1,464 @@
+{
+  "dataset_revision": "51bf3a03eb7feeaef8952be1fc2fc7f924ee72dc",
+  "case_counts": {
+    "short": 252,
+    "medium": 98,
+    "long": 20
+  },
+  "supported_case_counts": {
+    "short": 252,
+    "medium": 98,
+    "long": 20
+  },
+  "declared_dialect_case_counts": {
+    "None": 345,
+    "http://json-schema.org/draft-07/schema#": 17,
+    "https://json-schema.org/draft/2020-12/schema": 8
+  },
+  "unique_schemas": 70,
+  "supported_unique_schemas": 70,
+  "schemas": {
+    "8287bc99449525be9f71407b3dfec4062945014ff5e113ba30d78728dadb8400": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 10
+    },
+    "c9c9f55599d9061ad3190d16fae53df4faf0a35631b6dbb52f9a4bfb5b8c26a8": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 8
+    },
+    "52439fd280d91c2e7ad0d536e34f7552a8b80d50056b84c95205d2b9e4c623c1": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 9
+    },
+    "f2909b7cad6709502ef2ee4669b52b17d867b278d7126a763315ca5ef18adb83": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 6
+    },
+    "58e33c15582e9d30b1a6c06449a8b1a3c9831ee31bb4c0d4683c87b2df8e60cc": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 11
+    },
+    "bb86e68047a7f74bc44c2f1cf54bb5b0075b8e7b38310bc86b0805316bd7a732": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 9
+    },
+    "8c5a756d00cdf14b5ef83ae16576cd7e30111ade68679d9901b7c17163952750": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 17
+    },
+    "ad25b6f6432927f05d353cad05c393c5032b27df2cd1acd5223efac6b4cf9e88": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 15
+    },
+    "686ee0ebe1cbf5f5be3c5ed96cb236ef724b21f04257f82a827081853130a48b": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 11
+    },
+    "c50c32330a96e7259cd4a5a5125dbae3dacc48136407eb1882f2c5f5d2388b6c": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 17
+    },
+    "67fa158806e27251c4900857f660dec4c0648fa7f0b3b1193cacfc568397b4b8": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 3
+    },
+    "116e0b49fe9cc8e30f79f546aad859c3041002791434c58ba7727035a4ea3433": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 13
+    },
+    "a020bb477675e61ef54f7961e3a12f8e8fc4bd5dcfaa7a574abb90d15e8d5cb9": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 4
+    },
+    "64c3779952a98fae03b4c0de00e866d9a97951486e09ff89ffc4c4dd0bb7cee5": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 8
+    },
+    "0990b710fda0e775f4d19a7a8bbf6143dfd07c9d31b71b6d343647e18624d779": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "31b34903f41ecfed03b405d6caf87777d4c25f255cd6567a4d68d7ea946a0298": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "77571efac5dd54f4f4bf9b01968b891a735b19a911686267e5013ee8b36f790f": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 4
+    },
+    "750704d3eb264884b70ae231436e96aad045589667fc585a0a7f5d1650c25c85": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": "http://json-schema.org/draft-07/schema#",
+      "cases": 4
+    },
+    "e4bd462387456c694dda1c248e91d552a9ec77f090754ec2a61aa7666a30e18d": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "d3bd26d5e6471ab2ded777296891cf4b3e99a307d642d1dc06ac782d32f977b0": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 8
+    },
+    "61f1c156550518b97e62db424029335e5d9abc96306eafa0e4b4bcabebfe37ef": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": "http://json-schema.org/draft-07/schema#",
+      "cases": 6
+    },
+    "e63e2c6f4d6710c0126be2341175a02c886d4e21b28203b7ecac37c61df4bd75": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "4195a59d43f6bd0ff103bb5a56332bfe49c7bcd779e3117b627d080c126854d9": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 18
+    },
+    "cd58b1f2b17789b89d381d52a6e8b66820dd65ba69abd7024fd74110de4f32f5": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "166b66fcdeba068088c5d867c232204bbff04cd0b3bac9badabaa4f95e0d655e": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 6
+    },
+    "7d9d33fcaa25e510b9e50dc4dc0370b5955af0bc423606c26624efb0f589b987": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 3
+    },
+    "8710b523d5728ff547c2311f7965491257d1241457f9f57ea773d1ee7a1c95c6": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "f9b62d314acb25461f436e372312694208bcca5887bfca2ce0ee97b35625e382": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": "https://json-schema.org/draft/2020-12/schema",
+      "cases": 3
+    },
+    "2b3aa7dabfea27ab7034e6f0fe647a9d88120785efdecc631b1bb796cf360076": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 3
+    },
+    "fd12950609a669c9b9d0147edb52907a95198be2038696ae256cd1e9222b1c62": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 13
+    },
+    "3137f0b48ef3c43c6cdf97479c1037defed363ee8f8eeab8c4fcf4662d4e3f25": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 13
+    },
+    "930e8c1c9adb29fcaca21620c9d24662070046f3673e3ca48c4f9556776773d2": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 6
+    },
+    "491bf5cab904963a88352969a75b0a24113fc4722f05dcd30774534d822d1aaf": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "e8d73c0bdeca0e80ed2a8390e60f5bdb8cc4dfeda5cac50adc1bf702193122ce": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 4
+    },
+    "7afe2afbed0fec75a6295d70bd8b93dbc87632c47d954ef781a9245d02a0ee4c": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 19
+    },
+    "99150fc1c0acff9256d0dd54a92850260792c36d79a0cfcd966d116865251403": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "fd3964ebe265f16802907f6db24db07b03481f67bcdd261c12618c1b9591b465": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "7ef0f67ed6f1cc8a699e3d4dc0a104caab4b616da2a0016dfb4fb021eaa27091": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 3
+    },
+    "ab56dddbb88a669e1fffca2372e32a03c00950a5aab0715e7a8444eb5c010a18": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 3
+    },
+    "f7f922ff580ba4a35256853f6383d4d7576cfee2e56aa50f31bcbf8be2be2df9": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 6
+    },
+    "f44789200b1a1c1f585606c13cc2a5b844cfe35d8c2ae1e89ea7b6fabc5e574e": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": "https://json-schema.org/draft/2020-12/schema",
+      "cases": 5
+    },
+    "2e556f51f3e2ecc3369128e804efb9652455646bb6ab877d56a39660ef6d44b5": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": "http://json-schema.org/draft-07/schema#",
+      "cases": 4
+    },
+    "a78f8bb3ed5da927d9262aa2d77e99743f76fd0028e1e9fb49d7064b283a7a9a": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 4
+    },
+    "6060d5499cad3e8e787e18212b4ae07724457c65c4e685af2def5272fab8db1c": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 12
+    },
+    "138f104862bf0d16bd2d20051dacf201a7a0dcabce6f652a588189ac9c71022d": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": "http://json-schema.org/draft-07/schema#",
+      "cases": 3
+    },
+    "b69c5f0c74bd03b0bcd01c4f7f9d010f962990a1f558663b70536df6178dd866": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "25380855746ad5c9a4c0a3a1e44023098003b51e7deebd8014439fbd841ef1d9": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "0a5f50116d1a53f754b5c199469fc0400a849f116edb830ea6f5ef40a130d421": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "a370ad830aba75e63c03e1867cea545f2902be47b1c1ed87ccac600a3fee87d7": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "ead4e1dd92f371c2a5712358422dd440398065b40ea5cf982bc0f788a477df1c": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "233689c2ff565361803c544ba2b56685659dd1a00d1902837ecfb9b1a7f0e5dd": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "2028a6838ad95410090aee6202b933e9ef44ababbf6788dd5359444293c68eb4": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "9139b6532ac8d1f9cb213ca62f3ad5acc25fa8d3cb3abaf014c7fb055b398673": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "307d2384556b8e2ff10eddd6af7a9bb567cd5aee34ccc7267c0dbde6fb092908": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "1586b859d3edbc6f34011ecc5505e0e119207b32fbd904bed6de4052a9cae23a": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "fd822f5d0d8ed774704457d178c9e6f62d75cea775515afc903258a218129d09": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "0c97a1a23332edb4c4f2884ff80ae700bc9f9b8dc5b4ef9bacc0f8e734cc66ff": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "cee6755b2044ef3d5e3d12abbeb1cbc5d304354bbb798dc9490c1ce24679e01a": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 7
+    },
+    "9eeacee3822890546f95b25879ba77eb8896316d6bf25a52df763bfa80c5e32e": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 3
+    },
+    "98089dc7ff4e6202706e7afd73310cc4b8a0f046bb8076653f0ca1a5eae45c09": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "cccea741948ec67d0a6441aa7b94083471b232482c914b5fd8a4dfc175cc6795": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 5
+    },
+    "2188fb0df47b0c5bf9864f1138d588be69756de41ed778b1332c5e00d445deae": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "cf47ac0889072b4f88396142a37896d2be7281951c58a1ab143faf32d2f4f6e3": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "9ed4f690508202ff0b74550ebbd2ba43d4f85f85bbc57a379847fd690c5d8c08": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "8b5c30fcca83b5cc4e2f511898b5c4077f4fa3c16a9ec0051cd5f4d48d6d896a": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    },
+    "a85ca5f09e37d95ef1550b84feed49d9c81b78569ad0a0cd2f479a87ad560e8c": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "a46be93289a2823a013c999cd2e33acb1c89fb76a3cd65d44b475ad29dab6d2b": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "e0cda0b3300e0dbc832db23c74c4f1f920d732ff8614f0973c0a468951564ff7": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "86eca31abf07d971c43b362b38fddae0e0f07b78f257d68cd829fb1234eaf390": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 1
+    },
+    "03c8cffb78282ac445662c8e9e32f55b7a2a8cacd0f37a31e53a3e04f36f5bf5": {
+      "supported": true,
+      "issues": [],
+      "declared_dialect": null,
+      "cases": 2
+    }
+  },
+  "issue_counts": {},
+  "method": "SHA-256 of complete sorted JSON Schema objects including annotations; no semantic schema deduplication",
+  "profile": "docextract-schema/2 (JSON Schema 2020-12 and Draft 7)",
+  "source_bundle_sha256": "07ce5f61c86cd0d96d3ef8db183601548a686801f22d9b62c418a24075ab8701",
+  "files": [
+    {
+      "path": "long.jsonl",
+      "sha256": "b932c32a59a87a3e430cb475d2db94581aaf6a5589219579d2b43171cfe13b72",
+      "bytes": 163097453
+    },
+    {
+      "path": "medium.jsonl",
+      "sha256": "3fe712510db5cfaa80ff4469349ddc0071c70722dab26ed021bee218dac75b87",
+      "bytes": 64175355
+    },
+    {
+      "path": "short.jsonl",
+      "sha256": "3373bfdd44077f852b8f60e1d5b878a582c0c9517b22bcc5f4ec0d28f2ada36c",
+      "bytes": 30717761
+    }
+  ],
+  "local_dataset_downloaded": false
+}

@@ -1,0 +1,49 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "eb-dev-s1",
+  "population": "the 16 short documents of the development subset (docextract-dev/1), seen during development",
+  "source_bundle_sha256": "0a696c731357414986ae43f7b56bc0a0326ac906ccc6bffe917ba04bb88e73d8",
+  "hardware": "Kaggle, two T4s each taking half the documents, vLLM 0.30.0, float16; GPU 0 with MTP (2 draft tokens)",
+  "settings": "max_schema_chars 48000, prompt_budget_chars 72000, max_new_tokens 6144; prompt cited-values/3 and plain-values/1",
+  "session_seconds": 5908.3,
+  "stages_seconds": {
+    "install": 465.9,
+    "parse_shared_ocr": 31.0,
+    "inference_including_engine_start": 5321.7
+  },
+  "variants_value_f1_short": {
+    "cited": {
+      "documents": 16,
+      "scored_results": 16,
+      "value_f1": 0.69,
+      "value_f1_nulls_omitted": 0.69,
+      "grounded_f1": 0.4513,
+      "page_f1": 0.5285
+    },
+    "values": {
+      "documents": 16,
+      "scored_results": 16,
+      "value_f1": 0.7223,
+      "value_f1_nulls_omitted": 0.7223,
+      "grounded_f1": 0.4142,
+      "page_f1": 0.4497
+    },
+    "values-images": {
+      "documents": 16,
+      "scored_results": 16,
+      "value_f1": 0.7555,
+      "value_f1_nulls_omitted": 0.7555,
+      "grounded_f1": 0.4495,
+      "page_f1": 0.5032
+    }
+  },
+  "v4_qwen_same_documents_value_f1": 0.632,
+  "mtp": "mean acceptance length about 3.0 of 3 with 2 draft tokens (per-position acceptance 0.98-1.0)",
+  "local_replay": "re-assembly on a laptop reproduced 0.7555 exactly; document-text strings 0.7525; table completion no change",
+  "findings": [
+    "Plain values beat cited values on 11 of 16 documents (0.722 vs 0.690) with similar grounding; page images add +0.033.",
+    "Every document finished; v4's unfinished election and 1099-B documents now score 0.947 and 0.931.",
+    "With images, an 8-page scan duplicated records: overlapping windows showed the same page image twice, and values read from the image no longer matched the OCR text that merges duplicates. Image windows are now whole pages without overlap.",
+    "Engine start took about 9.5 minutes per GPU, 6.5 of them compiling kernels; the compiled kernels are exported for reuse."
+  ]
+}

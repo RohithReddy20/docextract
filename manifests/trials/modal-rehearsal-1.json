@@ -1,0 +1,99 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "modal-rehearsal-1",
+  "population": "30 documents (20 short, 8 medium, 2 long) in docextract-dev/1 hash order after the earlier subsets; 29 not seen before",
+  "settings": "final candidate: plain values, page images (768 px for schemas split into more than two groups), routing, notes, entity merging, 400-cell windows, prompt budget 72000, MTP 2, bfloat16; two L4 shards",
+  "gpu_seconds": {
+    "shard-0": 1098,
+    "shard-1": 727
+  },
+  "tokens": {
+    "answers": 192,
+    "length_capped": 5,
+    "input": 1221005,
+    "output": 231065
+  },
+  "groups": {
+    "all": {
+      "documents": 30,
+      "scored_results": 30,
+      "value_f1": 0.8162,
+      "value_f1_nulls_omitted": 0.8091,
+      "grounded_f1": 0.4308,
+      "page_f1": 0.575
+    },
+    "short": {
+      "documents": 20,
+      "scored_results": 20,
+      "value_f1": 0.8562,
+      "value_f1_nulls_omitted": 0.8456,
+      "grounded_f1": 0.3744,
+      "page_f1": 0.5434
+    },
+    "medium": {
+      "documents": 8,
+      "scored_results": 8,
+      "value_f1": 0.7287,
+      "value_f1_nulls_omitted": 0.7285,
+      "grounded_f1": 0.4956,
+      "page_f1": 0.6082
+    },
+    "long": {
+      "documents": 2,
+      "scored_results": 2,
+      "value_f1": 0.7662,
+      "value_f1_nulls_omitted": 0.7662,
+      "grounded_f1": 0.7119,
+      "page_f1": 0.7265
+    },
+    "seen_in_development": {
+      "documents": 1,
+      "scored_results": 1,
+      "value_f1": 0.7324,
+      "value_f1_nulls_omitted": 0.7324,
+      "grounded_f1": 0.7659,
+      "page_f1": 0.7031
+    },
+    "unseen": {
+      "documents": 29,
+      "scored_results": 29,
+      "value_f1": 0.8191,
+      "value_f1_nulls_omitted": 0.8117,
+      "grounded_f1": 0.4179,
+      "page_f1": 0.5703
+    }
+  },
+  "value_f1_by_document": {
+    "2278ace9b4075d3d": 0.7857,
+    "957108a9283f0487": 0.8453,
+    "9a2955ad7faa98db": 0.8708,
+    "bbad3bc0e801d3d2": 0.9028,
+    "b085ad8e39c1fbfe": 0.9535,
+    "6191ff14b715825e": 0.9612,
+    "8dcc938d59326e97": 0.9535,
+    "097283f4e70aec52": 0.82,
+    "b80730db5121c7fe": 0.9411,
+    "ae4c8ff4bba2b71f": 0.8261,
+    "f2b826a450f6c9b8": 0.8571,
+    "f585270e2e9ef28b": 0.5701,
+    "4c7698993fc173d2": 0.9206,
+    "de9346fc20a08596": 0.9808,
+    "692ad0447008eaaa": 0.9574,
+    "a4b555ea36a85a25": 0.9158,
+    "7f2ea4433774daf5": 0.7237,
+    "af0a30220cdf8a18": 0.7375,
+    "99c4fa67a5568e9e": 0.8621,
+    "e79eec66ae0d96e2": 0.738,
+    "0c97bfb1972b1ea6": 0.6474,
+    "6a1cb8835099a839": 0.75,
+    "403b1c6bda052446": 0.6429,
+    "5c469f8012b6b182": 0.5575,
+    "1d445407dca73292": 0.7857,
+    "ee4a7c60fd44aaa5": 0.8,
+    "1f33773e51a4f2d5": 0.737,
+    "00c2eedc346f2f90": 0.9091,
+    "d8965e141ae0c3b6": 0.8,
+    "f7534076afef33b1": 0.7324
+  },
+  "full_run_estimate": "about 27M prompt and 8M output tokens (adding the 18 tax-return-schema documents absent from this sample), 7.5-8 L4 hours at the rehearsal rate of 4.5M tokens per GPU-hour"
+}

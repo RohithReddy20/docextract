@@ -1,0 +1,90 @@
+{
+  "version": "authored-model-trial/1",
+  "trial": "cited-values-v1",
+  "population": "24 authored diagnostics: 12 development, 12 holdout variants; not ExtractBench",
+  "source_bundle_sha256": "541145567ca5a21be7ceea1cb38f78d0e66822db9a34cd67ca274e37d738d31d",
+  "model_selected": null,
+  "local_model_downloads": false,
+  "modal_used": false,
+  "wall_seconds_per_arm": {
+    "a-cited": 421,
+    "b-cited": 421
+  },
+  "arms": {
+    "a": {
+      "identity": {
+        "model": "Qwen/Qwen3.5-4B",
+        "revision": "bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "generation": {
+          "max_input_tokens": 8192,
+          "max_new_tokens": 2048
+        },
+        "prompt_version": "source-proposals/4+cited-values/1"
+      },
+      "model_calls": 24,
+      "input_tokens": 12496,
+      "output_tokens": 1530,
+      "generation_seconds": 115.8,
+      "max_input_tokens": 563,
+      "peak_reserved_bytes": 8682209280
+    },
+    "b": {
+      "identity": {
+        "model": "numind/NuExtract3",
+        "revision": "9968a5bd4cf562d3700a57dad097be2b6dfee34b",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "generation": {
+          "max_input_tokens": 8192,
+          "max_new_tokens": 2048
+        },
+        "prompt_version": "source-proposals/4+cited-values/1"
+      },
+      "model_calls": 24,
+      "input_tokens": 8226,
+      "output_tokens": 3896,
+      "generation_seconds": 242.4,
+      "max_input_tokens": 387,
+      "peak_reserved_bytes": 8652849152
+    }
+  },
+  "as_run_scores": {
+    "a": {
+      "exact_documents": 14,
+      "schema_valid_documents": 24
+    }
+  },
+  "revalidated_scores": {
+    "note": "Same saved generations re-checked by the revised local parser (record merging within one response fixed; null for non-nullable treated as absent; one-wrapper primitive lists accepted). No new inference.",
+    "a": {
+      "exact_documents": 16,
+      "by_family": {
+        "continuation": 0,
+        "narrative": 4,
+        "nested": 0,
+        "presence": 4,
+        "sparse": 4,
+        "tables": 4
+      }
+    },
+    "b": {
+      "exact_documents": 20,
+      "by_family": {
+        "continuation": 0,
+        "narrative": 4,
+        "nested": 4,
+        "presence": 4,
+        "sparse": 4,
+        "tables": 4
+      }
+    }
+  },
+  "remaining_failures": {
+    "a": "nested: two identically named parent groups merged into one; continuation: schema field 'id' filled with cell references and the page-2 continuation omitted",
+    "b": "continuation: page-2 continuation text omitted"
+  }
+}

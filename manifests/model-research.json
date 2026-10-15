@@ -1,0 +1,321 @@
+{
+  "date": "2026-10-14",
+  "scope": "source-inspection snapshot before remote model execution; execution results are reported separately",
+  "model_selected": null,
+  "model_inference_run": false,
+  "gpu_jobs_launched": 0,
+  "models": [
+    {
+      "model": "Qwen/Qwen3.5-4B",
+      "pinned_revision": "bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98",
+      "head_observed_2026_10_14": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "card_license": "apache-2.0",
+      "license_file_verified": true,
+      "metadata_files": [
+        {
+          "file": "config.json",
+          "bytes": 3161,
+          "sha256": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/resolve/bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98/config.json"
+        },
+        {
+          "file": "LICENSE",
+          "bytes": 11544,
+          "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/resolve/bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98/LICENSE"
+        },
+        {
+          "file": "model.safetensors.index.json",
+          "bytes": 76196,
+          "sha256": "cf3f798ee02ba45f9622aa8892a47369ab667d0afbf154ee7c2212de42e6302d",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/resolve/bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98/model.safetensors.index.json"
+        },
+        {
+          "file": "chat_template.jinja",
+          "bytes": 7756,
+          "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/resolve/bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98/chat_template.jinja"
+        },
+        {
+          "file": "README.md",
+          "bytes": 77651,
+          "sha256": "0631965e01d03245491fec76b0e88fba0eff1d7b892a10a7e96c76eaebcff8b7",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/resolve/bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98/README.md"
+        }
+      ],
+      "weights_downloaded": false,
+      "inference_tested": false,
+      "remote_weight_files": [
+        {
+          "file": "model.safetensors-00001-of-00002.safetensors",
+          "bytes": 5329398688,
+          "sha256": "26a93f066e1916adb13453dae5a0c707c0fbc71299ed98779571a907b8e74c61",
+          "downloaded": false
+        },
+        {
+          "file": "model.safetensors-00002-of-00002.safetensors",
+          "bytes": 3990429408,
+          "sha256": "cb544bd9bfae93dc59b0f22b292f5933573854a7f9b97835c67060d7d910e188",
+          "downloaded": false
+        }
+      ]
+    },
+    {
+      "model": "numind/NuExtract3",
+      "pinned_revision": "9968a5bd4cf562d3700a57dad097be2b6dfee34b",
+      "head_observed_2026_10_14": "c99dc8f5641b866aa0192b6ea78f84bf9f3535f1",
+      "card_license": "apache-2.0",
+      "license_file_verified": true,
+      "metadata_files": [
+        {
+          "file": "config.json",
+          "bytes": 2897,
+          "sha256": "e7ab2e18b0761f34cbbee2b58dc284f73825395e0c79d1f47a1089636b838e6b",
+          "url": "https://huggingface.co/numind/NuExtract3/resolve/9968a5bd4cf562d3700a57dad097be2b6dfee34b/config.json"
+        },
+        {
+          "file": "LICENSE",
+          "bytes": 11343,
+          "sha256": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+          "url": "https://huggingface.co/numind/NuExtract3/resolve/9968a5bd4cf562d3700a57dad097be2b6dfee34b/LICENSE"
+        },
+        {
+          "file": "model.safetensors.index.json",
+          "bytes": 56330,
+          "sha256": "025bad45ab352f28167725c248ba194d9d18a644c227f5628d970018fa57d5d4",
+          "url": "https://huggingface.co/numind/NuExtract3/resolve/9968a5bd4cf562d3700a57dad097be2b6dfee34b/model.safetensors.index.json"
+        },
+        {
+          "file": "chat_template.jinja",
+          "bytes": 6752,
+          "sha256": "31e44d28615d268efdc3dcf59cb59bd2d51714d517455fbad97518d351b84119",
+          "url": "https://huggingface.co/numind/NuExtract3/resolve/9968a5bd4cf562d3700a57dad097be2b6dfee34b/chat_template.jinja"
+        },
+        {
+          "file": "README.md",
+          "bytes": 25232,
+          "sha256": "ba3adf6ca527eee68a32979cd02b6e5484d554ab70ef4e9157a119ff3f1eb313",
+          "url": "https://huggingface.co/numind/NuExtract3/resolve/9968a5bd4cf562d3700a57dad097be2b6dfee34b/README.md"
+        }
+      ],
+      "weights_downloaded": false,
+      "inference_tested": false,
+      "remote_weight_files": [
+        {
+          "file": "model.safetensors",
+          "bytes": 9078620504,
+          "sha256": "aca0a9d61da5df4fa4b1475b68c0a7205e5f8f5f20beb5055fde0622991f9ed7",
+          "downloaded": false
+        },
+        {
+          "file": "model_mtp.safetensors",
+          "bytes": 241200704,
+          "sha256": "7f993d7b896c6d3c72ee66fd446b28bcf316d5f5ce4a0427c0442dfe461cbe1b",
+          "downloaded": false
+        }
+      ]
+    },
+    {
+      "model": "Qwen/Qwen3.5-9B",
+      "pinned_revision": "cc5442c03a5c0bff0bd4c6888d9a40029c637733",
+      "head_observed_2026_10_14": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+      "card_license": "apache-2.0",
+      "license_file_verified": true,
+      "metadata_files": [
+        {
+          "file": "config.json",
+          "bytes": 3126,
+          "sha256": "d0883072e01861ed0b2d47be3c16c36a8e81c224c7ffaa310c6558fb3f932b05",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-9B/resolve/cc5442c03a5c0bff0bd4c6888d9a40029c637733/config.json"
+        },
+        {
+          "file": "LICENSE",
+          "bytes": 11544,
+          "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-9B/resolve/cc5442c03a5c0bff0bd4c6888d9a40029c637733/LICENSE"
+        },
+        {
+          "file": "model.safetensors.index.json",
+          "bytes": 79657,
+          "sha256": "26d3539b516be613f39563617cb9d33b3f83d401298125be392c80cefb8f7fe5",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-9B/resolve/cc5442c03a5c0bff0bd4c6888d9a40029c637733/model.safetensors.index.json"
+        },
+        {
+          "file": "chat_template.jinja",
+          "bytes": 7778,
+          "sha256": "9684dcb8bb705a1a52b90838d714ae635168d67937e258722185f415711ccdec",
+          "url": "https://huggingface.co/Qwen/Qwen3.5-9B/resolve/cc5442c03a5c0bff0bd4c6888d9a40029c637733/chat_template.jinja"
+        }
+      ],
+      "weights_downloaded": false,
+      "inference_tested": false,
+      "remote_weight_files": [
+        {
+          "file": "model.safetensors-00001-of-00004.safetensors",
+          "bytes": 5276436216,
+          "sha256": "db6f444b43d318c92f360a13a25561a6a65b10c0631b8ed305a426dbaa6c380e",
+          "downloaded": false
+        },
+        {
+          "file": "model.safetensors-00002-of-00004.safetensors",
+          "bytes": 5335161512,
+          "sha256": "31c7d7e2dd5d207840b31cc59083c8f4c4718959149e0358c0364052bb9a0330",
+          "downloaded": false
+        },
+        {
+          "file": "model.safetensors-00003-of-00004.safetensors",
+          "bytes": 5368717440,
+          "sha256": "7ec36ba3a4176a44c3c0876ad80c56a2f70c84bf008d82e9501df642f17dadec",
+          "downloaded": false
+        },
+        {
+          "file": "model.safetensors-00004-of-00004.safetensors",
+          "bytes": 3325995712,
+          "sha256": "b62b0c4cd7e44edee103ee8f4fe225f246d5e768e07bfd5f25b63a8aa1fdd0c6",
+          "downloaded": false
+        }
+      ]
+    },
+    {
+      "model": "fastino/gliner2.5-small-v1",
+      "pinned_revision": "3ec6d3dd7e1e93a7cf9b46096fa47aeda61c711c",
+      "head_observed_2026_10_14": "df5910e44bc4ffdb0d95399a83b0ca4516349aa5",
+      "card_license": "apache-2.0",
+      "license_file_verified": false,
+      "metadata_files": [
+        {
+          "file": "config.json",
+          "bytes": 3152,
+          "sha256": "0b7d9e1401ceeb83e992ec66d2f93bff7e5646428f1b4706ec527cf88f53578a",
+          "url": "https://huggingface.co/fastino/gliner2.5-small-v1/resolve/3ec6d3dd7e1e93a7cf9b46096fa47aeda61c711c/config.json"
+        },
+        {
+          "file": "README.md",
+          "bytes": 21940,
+          "sha256": "ae3f3a5322638d64068bb6a308b7dd9d42225efa370f51819ee9b3fb59fd39b1",
+          "url": "https://huggingface.co/fastino/gliner2.5-small-v1/resolve/3ec6d3dd7e1e93a7cf9b46096fa47aeda61c711c/README.md"
+        }
+      ],
+      "weights_downloaded": false,
+      "inference_tested": false
+    }
+  ],
+  "source_files": [
+    {
+      "component": "numind_sdk_converter",
+      "sha256": "a30fe0686f79b98e7a3231ca3430e20c5889bc3e129de899c5e53e09a5fa84ef",
+      "url": "https://github.com/numindai/nuextract-platform-sdk/blob/cc8d5895792c527ccaa20512f25820c07da45293/src/numind/nuextract_utils/template_conversion/json_schema.py"
+    },
+    {
+      "component": "transformers_qwen_implementation",
+      "sha256": "0e7410f5251e5c324a5628c5340ee3551f7a6a505ce398569fcc3b5f3ac07f7a",
+      "url": "https://github.com/huggingface/transformers/blob/v5.3.0/src/transformers/models/qwen3_5/modeling_qwen3_5.py"
+    },
+    {
+      "component": "gliner_record_decoder",
+      "sha256": "766a2d91e01c88cde92f00aa2b31216a7313bd90893c0c0ee69b0b41a50a5f9b",
+      "url": "https://github.com/fastino-ai/GLiNER2/blob/b86d35c02f2c1a4d9840ea50197bd1b6d13b031e/gliner2/models/boundary/records.py"
+    },
+    {
+      "component": "gliner_chunk_merging",
+      "sha256": "ab93229c1dbd0ae88e0366884e76d3fb95564e050f987e20437762215066a1eb",
+      "url": "https://github.com/fastino-ai/GLiNER2/blob/b86d35c02f2c1a4d9840ea50197bd1b6d13b031e/gliner2/inference/chunking.py"
+    },
+    {
+      "component": "kaggle_build",
+      "bytes": 9050,
+      "sha256": "8a8aea1eaccc9ec2bead0cd04f207913b4d754babd41b0274558c4c13cc3fd60",
+      "url": "https://github.com/Kaggle/docker-python/blob/e096cbc5b6ff50ab49130187f8677dedb9b5e9bd/Dockerfile.tmpl"
+    },
+    {
+      "component": "kaggle_requirements",
+      "bytes": 3525,
+      "sha256": "4c0d45d406bfcdd488530d5816c864c6dfa63633f8883a3a26af0fd566e4f9ee",
+      "url": "https://github.com/Kaggle/docker-python/blob/e096cbc5b6ff50ab49130187f8677dedb9b5e9bd/kaggle_requirements.txt"
+    },
+    {
+      "component": "transformers_text_config",
+      "bytes": 14718,
+      "sha256": "2ec132e5ec5610d3c8110c65ed71cb4f49c98c49f1b79ead0ec973cdb949dd61",
+      "url": "https://github.com/huggingface/transformers/blob/v5.3.0/src/transformers/models/qwen3_5/configuration_qwen3_5.py"
+    },
+    {
+      "component": "transformers_text_weight_mapping",
+      "bytes": 21541,
+      "sha256": "cba24ce0b6db50514ef51375fbd61191a45c0b29f0945c151c39d9d86ccacce4",
+      "url": "https://github.com/huggingface/transformers/blob/v5.3.0/src/transformers/conversion_mapping.py"
+    },
+    {
+      "component": "transformers_generation",
+      "bytes": 211223,
+      "sha256": "9f248fb51b03a41f07f841bfeedd65ca296afd68a836e48085f66ada7c29215a",
+      "url": "https://github.com/huggingface/transformers/blob/v5.3.0/src/transformers/generation/utils.py"
+    },
+    {
+      "component": "transformers_newer_qwen_reference",
+      "bytes": 93133,
+      "sha256": "cf085792cb59e5bdf9b88a3d20bd353892289d054662a9c2b662221b97caefba",
+      "url": "https://github.com/huggingface/transformers/blob/v5.13.0/src/transformers/models/qwen3_5/modeling_qwen3_5.py"
+    }
+  ],
+  "sdk": {
+    "package": "numind",
+    "version": "0.4.0",
+    "wheel_sha256": "528121ad700c460b80cceb572efabe5f4af0e0dc64fe4800ab75656a2c9d07ed",
+    "installed_in_project": false,
+    "conversion_executed": false
+  },
+  "limitations": [
+    "Configuration and source inspection do not establish T4 compatibility, inference quality or measured memory.",
+    "GLiNER checkpoint license is declared by card metadata; LICENSE path returned 404.",
+    "Current Hub heads differ from trial pins; no pin was automatically advanced.",
+    "NuExtract primary weights and the separate MTP file are accounted separately; actual load peaks and used tensors remain unmeasured.",
+    "Kaggle source is not live account/runtime evidence; free quota, driver compatibility, disk capacity and text-only load parity remain unmeasured."
+  ],
+  "execution_policy": {
+    "models_allowed_on": [
+      "Kaggle",
+      "Modal"
+    ],
+    "local_weight_downloads_allowed": false,
+    "local_model_caches_allowed": false,
+    "local_model_execution_allowed": false,
+    "kaggle_role": "development and controlled trials with free quota only",
+    "modal_l4_role": "frozen final inference and full benchmark only",
+    "remote_runner_guard_implemented": true,
+    "artifact_allowlist_exporter_implemented": true
+  },
+  "runtime_followup": {
+    "date": "2026-10-14",
+    "design": "../docs/kaggle-trial.md",
+    "kaggle_build_source_commit": "e096cbc5b6ff50ab49130187f8677dedb9b5e9bd",
+    "live_kaggle_environment_verified": true,
+    "runtime_lock_validated": false,
+    "provisional_runtime": {
+      "python": "3.12",
+      "torch": "2.8.0",
+      "torch_cuda_wheel": "cu126",
+      "transformers": "5.3.0"
+    },
+    "text_only_class": "Qwen3_5ForCausalLM",
+    "text_only_checkpoint_mapping_source_verified": true,
+    "text_only_load_and_output_consistency_measured": false,
+    "full_prefill_logits_fp16_mib_at_2048_tokens": 970.0,
+    "ordinary_generate_already_limits_logits": true,
+    "newer_kernel_example": "Transformers 5.13.0 documented GB10/SM121 kernel does not establish a T4 benefit",
+    "environment_probe": {
+      "gpu_requested": false,
+      "model_libraries_imported": false,
+      "python": "3.13.15",
+      "torch_package": "2.11.0+cpu",
+      "transformers_package": "5.16.1",
+      "accelerate_package": "1.14.0",
+      "uv_available": true,
+      "batch_marker_verified": true
+    }
+  },
+  "later_execution_reports": [
+    "trials/native-values-v1.json"
+  ],
+  "later_schema_audit": "dataset-schema-inventory.json"
+}

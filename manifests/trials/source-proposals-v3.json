@@ -1,0 +1,108 @@
+{
+  "version": "authored-model-trial/1",
+  "trial": "source-proposals-v3",
+  "population": "three authored development cases; no holdout",
+  "source_bundle_sha256": "9dfef423e1d5b4e56a970daf32a458bcc0ab01f0cad3613481f1cc77e2ea525a",
+  "model_selected": null,
+  "local_model_downloads": false,
+  "modal_used": false,
+  "diagnostic_case_ids": [
+    "39ef153d26b7b6a3",
+    "f5360960f14a7731",
+    "3247a9b62e74b8d5"
+  ],
+  "arms": {
+    "a": {
+      "identity": {
+        "model": "Qwen/Qwen3.5-4B",
+        "revision": "bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "generation": {
+          "max_input_tokens": 6144,
+          "max_new_tokens": 1536
+        },
+        "prompt_version": "source-proposals/3"
+      },
+      "accepted_documents_under_v3_validator": 0,
+      "cases": [
+        {
+          "id": "39ef153d26b7b6a3",
+          "error_type_under_v3_validator": "JSONDecodeError",
+          "finish_reason": "stop",
+          "markdown_fenced": true
+        },
+        {
+          "id": "f5360960f14a7731",
+          "error_type_under_v3_validator": "JSONDecodeError",
+          "finish_reason": "stop",
+          "markdown_fenced": true
+        },
+        {
+          "id": "3247a9b62e74b8d5",
+          "error_type_under_v3_validator": "ValueError",
+          "finish_reason": "stop",
+          "markdown_fenced": false
+        }
+      ],
+      "input_tokens": 9904,
+      "output_tokens": 1007,
+      "generation_seconds": 87.97,
+      "max_measured_input_tokens": 4111,
+      "peak_reserved_bytes": 13593739264
+    },
+    "b": {
+      "identity": {
+        "model": "numind/NuExtract3",
+        "revision": "9968a5bd4cf562d3700a57dad097be2b6dfee34b",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "generation": {
+          "max_input_tokens": 6144,
+          "max_new_tokens": 1536
+        },
+        "prompt_version": "source-proposals/3"
+      },
+      "accepted_documents_under_v3_validator": 0,
+      "cases": [
+        {
+          "id": "39ef153d26b7b6a3",
+          "error_type_under_v3_validator": "ValidationError",
+          "finish_reason": "stop",
+          "markdown_fenced": false
+        },
+        {
+          "id": "f5360960f14a7731",
+          "error_type_under_v3_validator": "ValidationError",
+          "finish_reason": "stop",
+          "markdown_fenced": false
+        },
+        {
+          "id": "3247a9b62e74b8d5",
+          "error_type_under_v3_validator": "ValidationError",
+          "finish_reason": "stop",
+          "markdown_fenced": false
+        }
+      ],
+      "input_tokens": 11805,
+      "output_tokens": 1840,
+      "generation_seconds": 164.27,
+      "max_measured_input_tokens": 4944,
+      "peak_reserved_bytes": 13212057600
+    }
+  },
+  "revalidation": {
+    "note": "The same saved v3 generations re-checked locally by the revised per-proposal validator; no new inference.",
+    "exact_documents": {
+      "a": 2,
+      "b": 2
+    },
+    "schema_valid_documents": {
+      "a": 3,
+      "b": 3
+    },
+    "remaining_error": "both arms omitted the explicit cross-page continuation text in the continuation case"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "note": "Dress rehearsal: final settings on unseen documents in benchmark proportions, two L4 shards.",
+  "name": "rehearsal-1",
+  "arm": "a",
+  "dtype": "bfloat16",
+  "counts": {
+    "short": 20,
+    "medium": 8,
+    "long": 2
+  },
+  "shards": 2,
+  "gpu_hours": 0.5,
+  "prepare_hours": 0.25,
+  "score_hours": 0.25,
+  "max_window_chars": 24000,
+  "max_schema_chars": 24000,
+  "max_new_tokens": 6144,
+  "max_model_len": 32768,
+  "max_num_seqs": 64,
+  "gpu_memory_utilization": 0.92,
+  "ocr": "doctr",
+  "speculative_tokens": 2,
+  "protocol": "values",
+  "page_images": true,
+  "route_groups": true,
+  "prompt_budget_chars": 72000,
+  "factor_notes": true,
+  "merge_entities": true,
+  "absent_nullable": "null",
+  "complete_tables": false,
+  "final": false,
+  "max_window_units": 400,
+  "page_image_side_split": 768,
+  "offsets": {
+    "short": 32,
+    "medium": 8,
+    "long": 0
+  }
+}

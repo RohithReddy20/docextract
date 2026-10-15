@@ -1,0 +1,56 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "eb-dev-s3",
+  "population": "20 documents not seen before this run: the next 16 short and 4 medium in docextract-dev/1 hash order",
+  "source_bundle_sha256": "f4e72f865282e937c28bbbb00417d66e462e6377e492962bd7ccf1b16a9d56a3",
+  "settings": "Qwen3.5-4B fp16 on two T4s; plain values, page images, route_groups, prompt_budget_chars 72000, factor_notes, merge_entities, MTP 2, check-box guidance, word-gap parser fix",
+  "session_seconds": 4266.2,
+  "groups": {
+    "all": {
+      "documents": 20,
+      "scored_results": 20,
+      "value_f1": 0.7632,
+      "value_f1_nulls_omitted": 0.7565,
+      "grounded_f1": 0.3719,
+      "page_f1": 0.5469
+    },
+    "short": {
+      "documents": 16,
+      "scored_results": 16,
+      "value_f1": 0.7864,
+      "value_f1_nulls_omitted": 0.778,
+      "grounded_f1": 0.3608,
+      "page_f1": 0.5576
+    },
+    "medium": {
+      "documents": 4,
+      "scored_results": 4,
+      "value_f1": 0.6706,
+      "value_f1_nulls_omitted": 0.6706,
+      "grounded_f1": 0.4198,
+      "page_f1": 0.5123
+    }
+  },
+  "value_f1_by_document": {
+    "03c28f0f76b0e9db": 0.961,
+    "3a914f1d5dadcd04": 0.9467,
+    "a68b5d8688dfde13": 0.7625,
+    "a863b2d1a7f4c54f": 0.7759,
+    "10ebd9932acf8ee8": 0.8042,
+    "a4335f903e579329": 0.881,
+    "6515905fadabc4b7": 0.5007,
+    "51655ad655d87b2a": 0.9535,
+    "01a69526ba72c71b": 0.9286,
+    "da96560f2238f6ba": 0.5455,
+    "5b7539059de4a241": 0.3463,
+    "5312a50a640ee846": 0.9074,
+    "7118ee5ed5de4d73": 0.9535,
+    "c8b3d4a7a97da14c": 0.8333,
+    "0ed6e5e081489b4d": 1.0,
+    "aeff1e72d8b0cec4": 0.4819,
+    "23ee27781906d7e5": 0.9444,
+    "3ebc7d2a244ed35f": 0.2927,
+    "ef25157cab7c3294": 0.7309,
+    "a0a4cd8587a53e49": 0.7143
+  }
+}

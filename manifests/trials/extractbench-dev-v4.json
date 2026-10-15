@@ -1,0 +1,90 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "eb-dev-v4",
+  "population": "ExtractBench development subset: first 16 short + 4 medium documents in docextract-dev/1 hash order (seen during development)",
+  "source_bundle_sha256": "4655e002997b64a8c569c3b77279d34ea011ff1e33f74b837b365db383c59dec",
+  "hardware": "Kaggle, one T4 per arm, vLLM 0.30.0, float16",
+  "protocol": "cited-values/2 prompt; max_window_chars 24000; max_schema_chars 24000; max_new_tokens 6144; OCR docTR db_resnet50+crnn_vgg16_bn",
+  "deadline_seconds": 9000,
+  "inference_seconds": 7698.8,
+  "arms": {
+    "a": {
+      "model": "Qwen/Qwen3.5-4B",
+      "documents_finished_before_deadline": 13,
+      "scores_final_assembly": {
+        "all": {
+          "documents": 20,
+          "scored_results": 20,
+          "value_f1": 0.5734,
+          "value_f1_nulls_omitted": 0.5734,
+          "grounded_f1": 0.2922,
+          "page_f1": 0.3571
+        },
+        "short": {
+          "documents": 16,
+          "scored_results": 16,
+          "value_f1": 0.632,
+          "value_f1_nulls_omitted": 0.632,
+          "grounded_f1": 0.3615,
+          "page_f1": 0.4323
+        },
+        "medium": {
+          "documents": 4,
+          "scored_results": 4,
+          "value_f1": 0.339,
+          "value_f1_nulls_omitted": 0.339,
+          "grounded_f1": 0.0323,
+          "page_f1": 0.0566
+        }
+      }
+    },
+    "b": {
+      "model": "numind/NuExtract3",
+      "documents_finished_before_deadline": 14,
+      "scores_final_assembly": {
+        "all": {
+          "documents": 20,
+          "scored_results": 20,
+          "value_f1": 0.5747,
+          "value_f1_nulls_omitted": 0.5747,
+          "grounded_f1": 0.2596,
+          "page_f1": 0.4168
+        },
+        "short": {
+          "documents": 16,
+          "scored_results": 16,
+          "value_f1": 0.6296,
+          "value_f1_nulls_omitted": 0.6296,
+          "grounded_f1": 0.3116,
+          "page_f1": 0.4924
+        },
+        "medium": {
+          "documents": 4,
+          "scored_results": 4,
+          "value_f1": 0.355,
+          "value_f1_nulls_omitted": 0.355,
+          "grounded_f1": 0.0645,
+          "page_f1": 0.1145
+        }
+      }
+    }
+  },
+  "empty_prediction_value_f1": 0.3118,
+  "throughput": {
+    "a_requests": 148,
+    "a_input_tokens": 2058785,
+    "a_output_tokens": 76874,
+    "b_requests": 124,
+    "b_input_tokens": 1774296,
+    "b_output_tokens": 118564,
+    "largest_document_share_of_a_input": "b80b9d1450927196 (29 scanned pages, 155K-token schema in 22 groups): 136 requests, 1.73M input tokens (84%)",
+    "engine": "about 300 prompt tokens/s per T4 overall; KV cache 93-100% full with about 6-7 running requests; prefix-cache hit rate about 1-2% (vLLM prefix caching is unreliable for the Qwen3.5 hybrid architecture)"
+  },
+  "findings": [
+    "Accuracy of the two models is tied (0.573 vs 0.575 value F1); per-document differences are large in both directions and several come from documents unfinished at the deadline.",
+    "Prompt reading dominates: median 14.9K input tokens versus 24 output tokens per request (Qwen).",
+    "Scanned forms lose most points to values assigned to the wrong field and to check-box states; OCR text loses the box layout.",
+    "Null versus omitted made no difference: these schemas declare default null, which the scorer applies to missing keys."
+  ],
+  "model_selected": "Qwen/Qwen3.5-4B for further development (tied accuracy, shorter outputs, no template overhead, MTP head)"
+}

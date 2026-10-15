@@ -1,0 +1,77 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "modal-l4-probe-1",
+  "population": "6 seen documents: 2 short scanned forms, the tax return and fund report (medium), 2 long documents",
+  "hardware": "Modal, one L4, vLLM 0.30.0, bfloat16, MTP 2, Flash Attention, fused GDN decode",
+  "cost_usd": "about 0.79 for two attempts (first stopped at start-up: FlashInfer's sampler needs nvcc; disabled)",
+  "engine": {
+    "start_seconds": 232,
+    "warmup_seconds": 5.7,
+    "kv_cache_tokens": 213216,
+    "ocr_seconds": 94
+  },
+  "throughput": {
+    "generation_window_seconds": 1087,
+    "answers": 213,
+    "input_tokens": 1590159,
+    "output_tokens": 307010,
+    "length_capped_answers": 20,
+    "median_running_requests": 11,
+    "generation_tokens_per_second_median_max": [
+      272,
+      626
+    ],
+    "mtp_mean_acceptance_length": 2.99,
+    "prefix_cache_hit_rate": "about 37%"
+  },
+  "groups": {
+    "all": {
+      "documents": 6,
+      "scored_results": 6,
+      "value_f1": 0.7727,
+      "value_f1_nulls_omitted": 0.7727,
+      "grounded_f1": 0.3652,
+      "page_f1": 0.4989
+    },
+    "short": {
+      "documents": 2,
+      "scored_results": 2,
+      "value_f1": 0.8439,
+      "value_f1_nulls_omitted": 0.8439,
+      "grounded_f1": 0.1842,
+      "page_f1": 0.4296
+    },
+    "medium": {
+      "documents": 2,
+      "scored_results": 2,
+      "value_f1": 0.728,
+      "value_f1_nulls_omitted": 0.728,
+      "grounded_f1": 0.4139,
+      "page_f1": 0.5426
+    },
+    "long": {
+      "documents": 2,
+      "scored_results": 2,
+      "value_f1": 0.7462,
+      "value_f1_nulls_omitted": 0.7462,
+      "grounded_f1": 0.4974,
+      "page_f1": 0.5246
+    },
+    "seen_in_development": {
+      "documents": 6,
+      "scored_results": 6,
+      "value_f1": 0.7727,
+      "value_f1_nulls_omitted": 0.7727,
+      "grounded_f1": 0.3652,
+      "page_f1": 0.4989
+    }
+  },
+  "value_f1_by_document": {
+    "5456be9d8b189deb": 0.9259,
+    "c5c2fc4d2c674bb0": 0.7619,
+    "b80b9d1450927196": 0.8359,
+    "f507d12e361b2e50": 0.6202,
+    "f7534076afef33b1": 0.8012,
+    "c420f4d3e6c6cea9": 0.6912
+  }
+}

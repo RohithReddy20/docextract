@@ -1,0 +1,59 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "modal-l4-probe-2",
+  "population": "7 seen documents: 6 table-heavy, plus the 155K-token-schema tax return",
+  "hardware": "Modal, one L4, bfloat16, MTP 2; GPU stage capped at 40 minutes (reached)",
+  "cost_usd": "about 0.88",
+  "throughput": {
+    "answers": 257,
+    "input_tokens": 2288338,
+    "output_tokens": 401067,
+    "length_capped_answers": 19,
+    "prompt_tokens_per_second_under_load": "2600-3700 with 15 requests in flight and the KV cache full"
+  },
+  "value_f1_by_variant_and_document": {
+    "base": {
+      "6515905fadabc4b7": 0.5569,
+      "5b7539059de4a241": 0.3463,
+      "b80b9d1450927196": 0.7764,
+      "f507d12e361b2e50": 0.0042,
+      "3ebc7d2a244ed35f": 0.2927,
+      "ef25157cab7c3294": 0.1953,
+      "f7534076afef33b1": 0
+    },
+    "units400": {
+      "6515905fadabc4b7": 0.5685,
+      "5b7539059de4a241": 0.5733,
+      "b80b9d1450927196": 0.8251,
+      "f507d12e361b2e50": 0.2022,
+      "3ebc7d2a244ed35f": 0.3415,
+      "ef25157cab7c3294": 0.7545,
+      "f7534076afef33b1": 0.6985
+    },
+    "img768": {
+      "6515905fadabc4b7": 0.3065,
+      "5b7539059de4a241": 0.3463,
+      "b80b9d1450927196": 0.7786,
+      "f507d12e361b2e50": 0.0042,
+      "3ebc7d2a244ed35f": 0.2927,
+      "ef25157cab7c3294": 0.1953,
+      "f7534076afef33b1": 0
+    },
+    "noimg": {
+      "6515905fadabc4b7": 0.4331,
+      "5b7539059de4a241": 0.3463,
+      "b80b9d1450927196": 0.7517,
+      "f507d12e361b2e50": 0.0042,
+      "3ebc7d2a244ed35f": 0.2927,
+      "ef25157cab7c3294": 0.1953,
+      "f7534076afef33b1": 0
+    }
+  },
+  "finished_in_run": {
+    "base": "3/7",
+    "units400": "4/7",
+    "img768": "2/7",
+    "noimg": "2/7"
+  },
+  "decision": "max_window_units 400 adopted (more documents finished, higher F1 on every table document finished in both: budget appendix 0.346 -> 0.573, labour catalog 0.293 -> 0.341, price list 0.557 -> 0.568); image-size variants on the tax return did not finish, partial results similar (0.776 at 1280 px, 0.779 at 768 px, 0.752 without), so 768 px images are used only when a schema splits into more than two groups"
+}

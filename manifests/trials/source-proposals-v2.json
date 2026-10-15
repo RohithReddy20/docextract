@@ -1,0 +1,182 @@
+{
+  "cash_cost_estimate_usd": 0.0,
+  "source_bundle_sha256": "2ec0f64f02ca3d882a58636e0ef406cd2a2283065ba61279311801e1976a71d1",
+  "active_devices_per_stage": 1,
+  "gpus_assigned": [
+    "Tesla T4",
+    "Tesla T4"
+  ],
+  "session_worker_limit_seconds": 3300,
+  "stages": {
+    "a-bindings": {
+      "status": "complete",
+      "cases": 3,
+      "seconds": 253.22643259699998
+    },
+    "b-bindings": {
+      "status": "complete",
+      "cases": 3,
+      "seconds": 242.999377192
+    }
+  },
+  "complete": true,
+  "experiment": "bindings",
+  "diagnostic_case_ids": [
+    "39ef153d26b7b6a3",
+    "f5360960f14a7731",
+    "3247a9b62e74b8d5"
+  ],
+  "version": "authored-model-trial/1",
+  "population": "three authored development cases; no holdout",
+  "model_selected": null,
+  "local_model_downloads": false,
+  "modal_used": false,
+  "all_cases_accepted": false,
+  "grounded_results": 0,
+  "arms": {
+    "a": {
+      "identity": {
+        "backend": "kaggle-transformers",
+        "model": "Qwen/Qwen3.5-4B",
+        "revision": "bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "kernels": {
+          "chunk_gated_delta_rule": "torch_chunk_gated_delta_rule",
+          "recurrent_gated_delta_rule": "torch_recurrent_gated_delta_rule"
+        },
+        "generation": {
+          "max_input_tokens": 6144,
+          "max_new_tokens": 1536
+        },
+        "prompt_version": "source-proposals/2",
+        "backend_source_sha256": "5bb44657a524cbaf6da561ac1e527f54c4f2bf00af1b3f61114d1ea9a62fb7a8",
+        "runtime": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "torch": "2.8.0+cu126"
+      },
+      "preflight": {
+        "python": "3.12.3",
+        "torch": "2.8.0+cu126",
+        "backend_source_sha256": "5bb44657a524cbaf6da561ac1e527f54c4f2bf00af1b3f61114d1ea9a62fb7a8",
+        "cuda": "12.6",
+        "driver": "580.178.04",
+        "gpu": "Tesla T4",
+        "total_device_bytes": 15636037632,
+        "device_memory_limit_bytes": 14072433868,
+        "initial_device_free_bytes": 15507193856,
+        "packages": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "download_and_load_seconds": 83.09158084700005,
+        "load_peak_allocated_bytes": 8411531776,
+        "load_peak_reserved_bytes": 8420065280,
+        "host_peak_rss_bytes": 10069037056
+      },
+      "expected_documents": 3,
+      "accepted_documents": 0,
+      "cases": [
+        {
+          "id": "39ef153d26b7b6a3",
+          "error_type": "ValueError",
+          "finish_reason": "stop"
+        },
+        {
+          "id": "f5360960f14a7731",
+          "error_type": "ValueError",
+          "finish_reason": "stop"
+        },
+        {
+          "id": "3247a9b62e74b8d5",
+          "error_type": "IncompleteGeneration",
+          "finish_reason": "length"
+        }
+      ],
+      "input_tokens": 8245,
+      "output_tokens": 1893,
+      "generation_seconds": 154.79284550699992,
+      "max_measured_input_tokens": 3458,
+      "peak_reserved_bytes": 12134121472
+    },
+    "b": {
+      "identity": {
+        "backend": "kaggle-transformers",
+        "model": "numind/NuExtract3",
+        "revision": "9968a5bd4cf562d3700a57dad097be2b6dfee34b",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "kernels": {
+          "chunk_gated_delta_rule": "torch_chunk_gated_delta_rule",
+          "recurrent_gated_delta_rule": "torch_recurrent_gated_delta_rule"
+        },
+        "generation": {
+          "max_input_tokens": 6144,
+          "max_new_tokens": 1536
+        },
+        "prompt_version": "source-proposals/2",
+        "backend_source_sha256": "5bb44657a524cbaf6da561ac1e527f54c4f2bf00af1b3f61114d1ea9a62fb7a8",
+        "runtime": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "torch": "2.8.0+cu126"
+      },
+      "preflight": {
+        "python": "3.12.3",
+        "torch": "2.8.0+cu126",
+        "backend_source_sha256": "5bb44657a524cbaf6da561ac1e527f54c4f2bf00af1b3f61114d1ea9a62fb7a8",
+        "cuda": "12.6",
+        "driver": "580.178.04",
+        "gpu": "Tesla T4",
+        "total_device_bytes": 15636037632,
+        "device_memory_limit_bytes": 14072433868,
+        "initial_device_free_bytes": 15507193856,
+        "packages": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "download_and_load_seconds": 80.83235426599992,
+        "load_peak_allocated_bytes": 8411531776,
+        "load_peak_reserved_bytes": 8420065280,
+        "host_peak_rss_bytes": 9971900416
+      },
+      "expected_documents": 3,
+      "accepted_documents": 0,
+      "cases": [
+        {
+          "id": "39ef153d26b7b6a3",
+          "error_type": "ValidationError",
+          "finish_reason": "stop"
+        },
+        {
+          "id": "f5360960f14a7731",
+          "error_type": "ValidationError",
+          "finish_reason": "stop"
+        },
+        {
+          "id": "3247a9b62e74b8d5",
+          "error_type": "ValueError",
+          "finish_reason": "stop"
+        }
+      ],
+      "input_tokens": 8986,
+      "output_tokens": 1926,
+      "generation_seconds": 155.2276994240001,
+      "max_measured_input_tokens": 3705,
+      "peak_reserved_bytes": 12733906944
+    }
+  }
+}

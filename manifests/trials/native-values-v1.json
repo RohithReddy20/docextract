@@ -1,0 +1,318 @@
+{
+  "version": "authored-model-trial/1",
+  "source_bundle_sha256": "bf9ba39901f69ae2eea477fa82464874d6ab10b7d86976a5e696b0ebc6017dce",
+  "population": "six authored development cases; no holdout or ExtractBench cases",
+  "platform": "Kaggle",
+  "active_gpus": 1,
+  "device": "Tesla T4",
+  "estimated_cash_cost_usd": 0,
+  "local_model_downloads": false,
+  "modal_used": false,
+  "grounding_measured": false,
+  "working_context_measured": false,
+  "model_selected": null,
+  "wrapper_parity": {
+    "cases": 1,
+    "input_token_ids_sha256": true,
+    "output_token_ids_sha256": true
+  },
+  "runtime_lock_sha256": "4ff99078651c659317de77f6dde9cd6208c2d99508c2199ec13a9440ad0b4629",
+  "stages": {
+    "a-full-parity": {
+      "status": "complete",
+      "cases": 1,
+      "seconds": 103.94016593499998
+    },
+    "a-text-parity": {
+      "status": "complete",
+      "cases": 1,
+      "seconds": 40.17135399099999
+    },
+    "a-smoke": {
+      "status": "complete",
+      "cases": 6,
+      "seconds": 58.529370381000035
+    },
+    "b-smoke": {
+      "status": "complete",
+      "cases": 6,
+      "seconds": 103.120993
+    }
+  },
+  "arms": {
+    "a": {
+      "identity": {
+        "backend": "kaggle-transformers",
+        "model": "Qwen/Qwen3.5-4B",
+        "revision": "bbaaae1f57d79c7bf696d619ffbbb0c2c8e5ef98",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "kernels": {
+          "chunk_gated_delta_rule": "torch_chunk_gated_delta_rule",
+          "recurrent_gated_delta_rule": "torch_recurrent_gated_delta_rule"
+        },
+        "generation": {
+          "max_input_tokens": 2048,
+          "max_new_tokens": 256
+        },
+        "prompt_version": "source-proposals/1",
+        "runtime": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "torch": "2.8.0+cu126"
+      },
+      "preflight": {
+        "python": "3.12.3",
+        "torch": "2.8.0+cu126",
+        "backend_source_sha256": "058e966777c7506bd4bb8e3ffd1c6633cc922338e3d4e1889d424e49e19b6796",
+        "cuda": "12.6",
+        "driver": "580.178.04",
+        "gpu": "Tesla T4",
+        "total_device_bytes": 15636037632,
+        "device_memory_limit_bytes": 14072433868,
+        "initial_device_free_bytes": 15507193856,
+        "packages": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "download_and_load_seconds": 31.456190219000064,
+        "load_peak_allocated_bytes": 8411531776,
+        "load_peak_reserved_bytes": 8420065280,
+        "host_peak_rss_bytes": 9837535232
+      },
+      "metrics": {
+        "expected_documents": 6,
+        "successful_documents": 3,
+        "schema_valid_documents": 3,
+        "exact_documents": 3,
+        "expected_complete_subtree_records": 9,
+        "predicted_complete_subtree_records": 5,
+        "correct_complete_subtree_records": 5
+      },
+      "cases": [
+        {
+          "id": "39ef153d26b7b6a3",
+          "family": "sparse",
+          "split": "development",
+          "success": false,
+          "schema_valid": false,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 0,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        },
+        {
+          "id": "a813175185896422",
+          "family": "presence",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": true,
+          "expected_complete_subtree_records": 0,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        },
+        {
+          "id": "f5360960f14a7731",
+          "family": "tables",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": true,
+          "expected_complete_subtree_records": 3,
+          "predicted_complete_subtree_records": 3,
+          "correct_complete_subtree_records": 3
+        },
+        {
+          "id": "35fd761234d19aeb",
+          "family": "narrative",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": true,
+          "expected_complete_subtree_records": 2,
+          "predicted_complete_subtree_records": 2,
+          "correct_complete_subtree_records": 2
+        },
+        {
+          "id": "51ad727b1536f95b",
+          "family": "nested",
+          "split": "development",
+          "success": false,
+          "schema_valid": false,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 2,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        },
+        {
+          "id": "3247a9b62e74b8d5",
+          "family": "continuation",
+          "split": "development",
+          "success": false,
+          "schema_valid": false,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 2,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        }
+      ],
+      "input_tokens": 5143,
+      "output_tokens": 251,
+      "peak_reserved_bytes": 9294577664,
+      "generation_seconds": 20.856442253999944,
+      "completed_generations": 5,
+      "max_measured_input_tokens": 1628,
+      "time_to_first_token_measured": false
+    },
+    "b": {
+      "identity": {
+        "backend": "kaggle-transformers",
+        "model": "numind/NuExtract3",
+        "revision": "9968a5bd4cf562d3700a57dad097be2b6dfee34b",
+        "wrapper": "text",
+        "dtype": "float16",
+        "attention": "sdpa",
+        "kernels": {
+          "chunk_gated_delta_rule": "torch_chunk_gated_delta_rule",
+          "recurrent_gated_delta_rule": "torch_recurrent_gated_delta_rule"
+        },
+        "generation": {
+          "max_input_tokens": 2048,
+          "max_new_tokens": 256
+        },
+        "prompt_version": "source-proposals/1",
+        "runtime": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "torch": "2.8.0+cu126"
+      },
+      "preflight": {
+        "python": "3.12.3",
+        "torch": "2.8.0+cu126",
+        "backend_source_sha256": "058e966777c7506bd4bb8e3ffd1c6633cc922338e3d4e1889d424e49e19b6796",
+        "cuda": "12.6",
+        "driver": "580.178.04",
+        "gpu": "Tesla T4",
+        "total_device_bytes": 15636037632,
+        "device_memory_limit_bytes": 14072433868,
+        "initial_device_free_bytes": 15507193856,
+        "packages": {
+          "transformers": "5.3.0",
+          "huggingface-hub": "1.33.0",
+          "safetensors": "0.8.0",
+          "accelerate": "1.12.0"
+        },
+        "download_and_load_seconds": 76.89593644999991,
+        "load_peak_allocated_bytes": 8411531776,
+        "load_peak_reserved_bytes": 8420065280,
+        "host_peak_rss_bytes": 9918332928
+      },
+      "metrics": {
+        "expected_documents": 6,
+        "successful_documents": 5,
+        "schema_valid_documents": 4,
+        "exact_documents": 2,
+        "expected_complete_subtree_records": 9,
+        "predicted_complete_subtree_records": 6,
+        "correct_complete_subtree_records": 4
+      },
+      "cases": [
+        {
+          "id": "39ef153d26b7b6a3",
+          "family": "sparse",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": true,
+          "expected_complete_subtree_records": 0,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        },
+        {
+          "id": "a813175185896422",
+          "family": "presence",
+          "split": "development",
+          "success": true,
+          "schema_valid": false,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 0,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        },
+        {
+          "id": "f5360960f14a7731",
+          "family": "tables",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 3,
+          "predicted_complete_subtree_records": 2,
+          "correct_complete_subtree_records": 2
+        },
+        {
+          "id": "35fd761234d19aeb",
+          "family": "narrative",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": true,
+          "expected_complete_subtree_records": 2,
+          "predicted_complete_subtree_records": 2,
+          "correct_complete_subtree_records": 2
+        },
+        {
+          "id": "51ad727b1536f95b",
+          "family": "nested",
+          "split": "development",
+          "success": true,
+          "schema_valid": true,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 2,
+          "predicted_complete_subtree_records": 2,
+          "correct_complete_subtree_records": 0
+        },
+        {
+          "id": "3247a9b62e74b8d5",
+          "family": "continuation",
+          "split": "development",
+          "success": false,
+          "schema_valid": false,
+          "invalid_saved_result": false,
+          "exact_document": false,
+          "expected_complete_subtree_records": 2,
+          "predicted_complete_subtree_records": 0,
+          "correct_complete_subtree_records": 0
+        }
+      ],
+      "input_tokens": 5398,
+      "output_tokens": 231,
+      "peak_reserved_bytes": 9367977984,
+      "generation_seconds": 19.93140772000004,
+      "completed_generations": 5,
+      "max_measured_input_tokens": 1676,
+      "time_to_first_token_measured": false
+    }
+  }
+}

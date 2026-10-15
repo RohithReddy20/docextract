@@ -1,0 +1,21 @@
+{
+  "final": false,
+  "name": "l4-probe-1",
+  "note": "First L4 research session: L4 speed, Modal pipeline check, first long documents.",
+  "arm": "a",
+  "dtype": "bfloat16",
+  "ids": ["b80b9d1450927196", "f507d12e361b2e50", "f7534076afef33b1", "c420f4d3e6c6cea9", "c5c2fc4d2c674bb0", "5456be9d8b189deb"],
+  "shards": 1,
+  "gpu_hours": 0.6,
+  "prepare_hours": 0.5,
+  "score_hours": 0.25,
+  "max_window_chars": 24000,
+  "max_schema_chars": 24000,
+  "max_new_tokens": 6144,
+  "max_model_len": 32768,
+  "max_num_seqs": 64,
+  "gpu_memory_utilization": 0.92,
+  "ocr": "doctr",
+  "speculative_tokens": 2,
+  "variants": [{"name": "best", "protocol": "values", "page_images": true, "route_groups": true, "prompt_budget_chars": 72000, "factor_notes": true, "merge_entities": true}]
+}

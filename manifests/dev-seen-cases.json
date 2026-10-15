@@ -1,0 +1,120 @@
+{
+  "version": "dev-seen-cases/1",
+  "salt": "docextract-dev/1",
+  "note": "Case ids (digests of dataset row ids) whose answers or outputs were examined during development; final scores report them apart from the rest.",
+  "subsets": [
+    {
+      "counts": {
+        "short": 16,
+        "medium": 4
+      },
+      "offset": 0,
+      "cases": [
+        "c28c71081cb0124b",
+        "4df6e9af360bcdf1",
+        "0b0501ae8cce06d4",
+        "5456be9d8b189deb",
+        "8396c2f119ce2b23",
+        "0280970b03b14a41",
+        "b08d8d1152e69021",
+        "e84c1d11c33397d2",
+        "f55cd3971f339592",
+        "a68a06bd17e0a235",
+        "c5c2fc4d2c674bb0",
+        "383c6af7012b58a4",
+        "9b2ff0682c67dbc5",
+        "d98b249e91137fee",
+        "cab400253a9155e3",
+        "41b63ffc5e10eba1",
+        "b80b9d1450927196",
+        "fb180e0b6c04ae91",
+        "f507d12e361b2e50",
+        "bff9fbe9936a6d4d"
+      ]
+    },
+    {
+      "note": "Modal L4 probe 1: two long documents chosen by size (no answers looked at to choose)",
+      "cases": [
+        "f7534076afef33b1",
+        "c420f4d3e6c6cea9"
+      ]
+    },
+    {
+      "counts": {
+        "short": 16,
+        "medium": 4
+      },
+      "offsets": {
+        "short": 16,
+        "medium": 4
+      },
+      "note": "eb-dev s3: held out until scored; seen afterwards",
+      "cases": [
+        "03c28f0f76b0e9db",
+        "3a914f1d5dadcd04",
+        "a68b5d8688dfde13",
+        "a863b2d1a7f4c54f",
+        "10ebd9932acf8ee8",
+        "a4335f903e579329",
+        "6515905fadabc4b7",
+        "51655ad655d87b2a",
+        "01a69526ba72c71b",
+        "da96560f2238f6ba",
+        "5b7539059de4a241",
+        "5312a50a640ee846",
+        "7118ee5ed5de4d73",
+        "c8b3d4a7a97da14c",
+        "0ed6e5e081489b4d",
+        "aeff1e72d8b0cec4",
+        "23ee27781906d7e5",
+        "3ebc7d2a244ed35f",
+        "ef25157cab7c3294",
+        "a0a4cd8587a53e49"
+      ]
+    },
+    {
+      "counts": {
+        "short": 20,
+        "medium": 8,
+        "long": 2
+      },
+      "offsets": {
+        "short": 32,
+        "medium": 8,
+        "long": 0
+      },
+      "note": "Modal dress rehearsal: scored once with the final settings, not used for tuning",
+      "cases": [
+        "2278ace9b4075d3d",
+        "957108a9283f0487",
+        "9a2955ad7faa98db",
+        "bbad3bc0e801d3d2",
+        "b085ad8e39c1fbfe",
+        "6191ff14b715825e",
+        "8dcc938d59326e97",
+        "097283f4e70aec52",
+        "b80730db5121c7fe",
+        "ae4c8ff4bba2b71f",
+        "f2b826a450f6c9b8",
+        "f585270e2e9ef28b",
+        "4c7698993fc173d2",
+        "de9346fc20a08596",
+        "692ad0447008eaaa",
+        "a4b555ea36a85a25",
+        "7f2ea4433774daf5",
+        "af0a30220cdf8a18",
+        "99c4fa67a5568e9e",
+        "e79eec66ae0d96e2",
+        "0c97bfb1972b1ea6",
+        "6a1cb8835099a839",
+        "403b1c6bda052446",
+        "5c469f8012b6b182",
+        "1d445407dca73292",
+        "ee4a7c60fd44aaa5",
+        "1f33773e51a4f2d5",
+        "00c2eedc346f2f90",
+        "d8965e141ae0c3b6"
+      ]
+    }
+  ]
+}
