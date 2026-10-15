@@ -1,0 +1,31 @@
+src/docextract/batch.py
+  s_eaf722cf290d93::t_a18e97a00a1540 1-209
+src/docextract/cited.py
+  s_eaf722cf290d93::t_ff4d4a224d9bea 1-1214
+src/docextract/partition.py
+  s_eaf722cf290d93::t_30b2ce7e452c35 1-157
+src/docextract/routing.py
+  s_eaf722cf290d93::t_930208592b809f 1-81
+tests/test_cited.py
+  s_eaf722cf290d93::t_686443347502de 1-877
+tests/test_partition.py
+  s_eaf722cf290d93::t_dc3df1f5a3e3e6 1-126
+tests/test_routing.py
+  s_eaf722cf290d93::t_f20d0a68bc5e5a 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "02d30f081e7ed207e613ac345a6ca56976764a36",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
