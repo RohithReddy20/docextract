@@ -1,0 +1,29 @@
+runtimes/kaggle/bootstrap.py
+  s_eaf722cf290d93::t_aa55e48c5d18b6 1-239
+runtimes/kaggle/extractbench.py
+  s_eaf722cf290d93::t_17a65d163e4edf 1-486
+runtimes/kaggle/probe.py
+  s_eaf722cf290d93::t_749f3be7f2c0db 1-152
+runtimes/kaggle/uv.lock
+  s_eaf722cf290d93::t_19ba22edbbc5cf 1-777
+runtimes/modal/final_run.py
+  s_eaf722cf290d93::t_332467436f45cb 1-512
+runtimes/kaggle/pyproject.toml
+  s_eaf722cf290d93::t_4901c9294fa5e4 1-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38321e000daf3b0fb9bc01173b4cc84e7eabb6d2",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
