@@ -1,0 +1,83 @@
+docs/architecture.md
+  s_eaf722cf290d93::t_5084db7176ce8f 1-209
+docs/experiments.md
+  s_5a808994b71369::t_ef3ab8693b02e7 1-220
+docs/kaggle-trial.md
+  s_eaf722cf290d93::t_4624b916355b9e 1-261
+docs/model-trials.md
+  s_eaf722cf290d93::t_d4f5b382464a70 1-196
+docs/schema-profile.md
+  s_5a808994b71369::t_b63071f05360be 1-71
+docs/validation.md
+  s_5a808994b71369::t_55807165a46e7d 1-47
+manifests/dataset-schema-inventory.json
+  s_eaf722cf290d93::t_20dd34bdd3ec0f 1-464
+manifests/dev-seen-cases.json
+  s_eaf722cf290d93::t_4ab38cf2199cb1 1-120
+manifests/final-run.json
+  s_eaf722cf290d93::t_2cb6ec976c7528 1-35
+manifests/modal/l4-probe-1.json
+  s_eaf722cf290d93::t_aa73fd15b76f23 1-21
+manifests/modal/l4-probe-2.json
+  s_eaf722cf290d93::t_18d69d1bbcdcdf 1-26
+manifests/modal/rehearsal-1.json
+  s_eaf722cf290d93::t_7a4bb9d36a7032 1-39
+manifests/model-research.json
+  s_5a808994b71369::t_b8ebf8b9f3408a 1-321
+manifests/references.json
+  s_eaf722cf290d93::t_fc6442a732e73a 1-31
+manifests/trials/cited-values-v1.json
+  s_eaf722cf290d93::t_ddc2f4d25949db 1-90
+manifests/trials/extractbench-dev-s1.json
+  s_eaf722cf290d93::t_86c9aa113cab23 1-49
+manifests/trials/extractbench-dev-s2.json
+  s_eaf722cf290d93::t_f62a2de5862cd1 1-37
+manifests/trials/extractbench-dev-s3.json
+  s_eaf722cf290d93::t_cd5a2fa585ab0b 1-56
+manifests/trials/extractbench-dev-v4.json
+  s_eaf722cf290d93::t_c4ec4f71b2d7b8 1-90
+manifests/trials/modal-l4-probe-1.json
+  s_eaf722cf290d93::t_c03024af90b324 1-77
+manifests/trials/modal-l4-probe-2.json
+  s_eaf722cf290d93::t_47e1fcfe9cb380 1-59
+manifests/trials/modal-rehearsal-1.json
+  s_eaf722cf290d93::t_37c7afeed6b431 1-99
+manifests/trials/native-values-v1.json
+  s_5a808994b71369::t_b49aff5a332192 1-318
+manifests/trials/source-proposals-v2.json
+  s_5a808994b71369::t_54c8cf60c25bf2 1-182
+manifests/trials/source-proposals-v3.json
+  s_eaf722cf290d93::t_992f2bd3e996f0 1-108
+manifests/trials/source-proposals-v4.json
+  s_eaf722cf290d93::t_83d1450b7de24c 1-79
+manifests/workload-inventory.json
+  s_eaf722cf290d93::t_fd5ef12b859b4b 1-162
+docs/licenses.md
+  s_eaf722cf290d93::t_95ab9839a7ea2f 1-29
+docs/sources.md
+  s_eaf722cf290d93::t_5417e1284a7c32 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "27dac2773acb98db9f01ea7265ae5c49fef90573",
+  "prompts": {},
+  "sessions": {
+    "s_5a808994b71369": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13aeb-f699-7620-80b5-a873beaca51d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    },
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
