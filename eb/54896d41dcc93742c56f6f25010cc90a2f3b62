@@ -1,0 +1,39 @@
+LICENSE
+  s_5a808994b71369::t_07712b410b4076 1-202
+README.md
+  s_eaf722cf290d93::t_9ed0e7a86299e6 1-229
+notices/PDFium-4.30.0-third-party.txt
+  s_5a808994b71369::t_51fb95109d5595 1-972
+pyproject.toml
+  s_eaf722cf290d93::t_126e127dedf21f 1-48
+uv.lock
+  s_eaf722cf290d93::t_8b58b937fd58bc 1-1291
+.gitignore
+  s_eaf722cf290d93::t_2cf0e3e695388e 1-33
+.python-version
+  s_eaf722cf290d93::t_eda12e01958780 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eb54896d41dcc93742c56f6f25010cc90a2f3b62",
+  "prompts": {},
+  "sessions": {
+    "s_5a808994b71369": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13aeb-f699-7620-80b5-a873beaca51d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    },
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
