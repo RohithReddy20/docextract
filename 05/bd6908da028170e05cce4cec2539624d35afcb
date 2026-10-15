@@ -1,0 +1,53 @@
+src/docextract/assembly.py
+  s_eaf722cf290d93::t_b4d34cff913109 1-68
+src/docextract/cli.py
+  s_5a808994b71369::t_6e944a8cc56216 1-102
+src/docextract/engine.py
+  s_5a808994b71369::t_4e8f30f9ce891f 1-196
+src/docextract/example.py
+  s_5a808994b71369::t_0c2f445ed6d098 1-170
+src/docextract/learned.py
+  s_eaf722cf290d93::t_561e150aba61b7 1-601
+src/docextract/models.py
+  s_eaf722cf290d93::t_eb3c4349dec0f0 1-124
+src/docextract/planning.py
+  s_5a808994b71369::t_1427327672b683 1-394
+src/docextract/runtime.py
+  s_eaf722cf290d93::t_596f3bd568fc83 1-98
+src/docextract/tables.py
+  s_eaf722cf290d93::t_5304be604ecab8 1-116
+src/docextract/trial.py
+  s_5a808994b71369::t_38a9b648ea6e45 1-79
+tests/test_extraction.py
+  s_5a808994b71369::t_d2d6810f3f464c 1-201
+tests/test_learned.py
+  s_eaf722cf290d93::t_82d402ade3392d 1-570
+tests/test_recovery.py
+  s_5a808994b71369::t_a14378a6d5a34a 1-149
+tests/test_trials.py
+  s_5a808994b71369::t_0bab2f2d286137 1-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "05bd6908da028170e05cce4cec2539624d35afcb",
+  "prompts": {},
+  "sessions": {
+    "s_5a808994b71369": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13aeb-f699-7620-80b5-a873beaca51d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    },
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "unknown"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
