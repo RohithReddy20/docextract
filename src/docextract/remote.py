@@ -233,6 +233,12 @@ def cited_messages(task: CitedTask, arm: str, protocol: str = "cited") -> tuple[
     then locates in the window. Page images, when present, follow the schema and precede the text
     lines, so windows that share a schema field group still share a prompt prefix.
     """
+    if protocol == "oneshot":
+        from docextract.oneshot import SYSTEM_PROMPT, user_text
+
+        text = user_text(task.original_schema, list(task.page_texts))
+        content = [*({"type": "image"} for _ in task.page_images), {"type": "text", "text": text}]
+        return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": content}], {}
     plain = protocol == "values"
     document = render_evidence(task.units, refs=not plain)
     schema = prompt_schema(task.prompt_schema)
@@ -327,7 +333,7 @@ def pinned_checkpoint(arm: str, manifest: Path, cache_root: Path, *, offline=Fal
     from huggingface_hub import snapshot_download
 
     registry = json.loads(manifest.read_text())
-    name = "Qwen/Qwen3.5-4B" if arm == "a" else "numind/NuExtract3"
+    name = {"a": "Qwen/Qwen3.5-4B", "b": "numind/NuExtract3", "c": "Qwen/Qwen3.5-9B"}[arm]
     entry = next(item for item in registry["models"] if item["model"] == name)
     revision = entry["pinned_revision"]
     if len(revision) != 40 or not entry["license_file_verified"]:

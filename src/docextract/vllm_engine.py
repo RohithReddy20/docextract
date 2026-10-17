@@ -41,9 +41,10 @@ class VllmCitedEngine:
         speculative_tokens=0,
         max_images=0,
         prefix_caching=True,
+        quantization=None,
     ):
         platform = require_remote()
-        if arm not in ("a", "b"):
+        if arm not in ("a", "b", "c"):
             raise ValueError("Unknown trial arm")
         print("Estimated total cash cost is stated by the launching job; no paid fallback here.", flush=True)
         if platform == "kaggle":
@@ -72,6 +73,8 @@ class VllmCitedEngine:
             disable_log_stats=False,
             # Prefix reuse is unreliable for this hybrid architecture and keeps extra state copies.
             enable_prefix_caching=prefix_caching,
+            # "fp8": weights quantized to 8 bits at load, so a 9B checkpoint fits a 24 GB L4.
+            quantization=quantization,
             # The checkpoint's own multi-token-prediction head drafts tokens that the model then
             # verifies; greedy output is unchanged, only faster when drafts are accepted.
             **(
@@ -102,9 +105,10 @@ class VllmCitedEngine:
                 "speculative_tokens": speculative_tokens,
                 "max_images": max_images,
                 "prefix_caching": prefix_caching,
+                **({"quantization": quantization} if quantization else {}),
             },
             # The protocol (cited or plain values) is chosen per window and is part of its identity.
-            "prompt_version": "cited-values/4+plain-values/2",
+            "prompt_version": "cited-values/4+plain-values/2+oneshot/1",
             "engine_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             "prompt_source_sha256": hashlib.sha256(
                 Path(__file__).with_name("remote.py").read_bytes()
@@ -133,6 +137,9 @@ class VllmCitedEngine:
         if self.constrained and task.protocol == "cited":
             # One grammar per request: each window may carry a different schema field group.
             structured = StructuredOutputsParams(json=cited_output_schema(task.prompt_schema))
+        elif task.protocol == "oneshot":
+            # Any JSON object, without free whitespace (no runaway blank output).
+            structured = StructuredOutputsParams(json_object=True, disable_any_whitespace=True)
         return SamplingParams(
             temperature=0.0,
             max_tokens=self.max_new_tokens,

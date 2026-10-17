@@ -25,6 +25,7 @@ VARIANT_KEYS = {
     "page_image_side",
     "page_image_side_split",
     "max_window_pages",
+    "oneshot_dpi",
 }
 
 
@@ -161,8 +162,12 @@ def engine_for(args):
                     if v.get("page_images")
                 ),
                 default=0,
-            ),
+            )
+            # A whole-document request shows every page.
+            if not any(v.get("protocol") == "oneshot" for v in args.variants)
+            else args.max_document_pages,
             prefix_caching=not args.no_prefix_caching,
+            quantization=args.quantization,
         )
     from docextract.remote import GenerationOptions, KaggleTransformersBackend
 
@@ -191,7 +196,8 @@ def main():
     parser.add_argument(
         "--nulls-if-partial", action="store_true", help="null absent nullable fields even if windows failed"
     )
-    parser.add_argument("--arm", choices=("a", "b"), required=True)
+    parser.add_argument("--arm", choices=("a", "b", "c"), required=True)
+    parser.add_argument("--quantization", choices=("fp8",), help="quantize weights at load (vLLM)")
     parser.add_argument("--kernels", choices=("torch", "fla"), default="torch")
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--cache-root", type=Path, required=True)
@@ -205,7 +211,10 @@ def main():
     parser.add_argument("--speculative-tokens", type=int, default=0, help="MTP draft tokens per step")
     parser.add_argument("--page-images", action="store_true", help="show scanned page images to the model")
     parser.add_argument(
-        "--protocol", choices=("cited", "values"), default="cited", help="values: no source references"
+        "--protocol",
+        choices=("cited", "values", "oneshot"),
+        default="cited",
+        help="values: no source references; oneshot: the whole document (page images + text) at once",
     )
     parser.add_argument(
         "--variants",
@@ -226,6 +235,9 @@ def main():
     parser.add_argument("--max-schema-chars", type=int, default=24000)
     parser.add_argument("--max-window-units", type=int, help="cap cells per window (dense tables)")
     parser.add_argument("--constrained", action="store_true", help="vLLM JSON-schema constrained decoding")
+    parser.add_argument(
+        "--max-document-pages", type=int, default=200, help="most page images in one whole-document request"
+    )
     args = parser.parse_args()
     # Without --variants the single variant is the flat options above, written directly under --output.
     args.variants = args.variants or [
@@ -237,7 +249,11 @@ def main():
     args.page_images_dir = args.page_images_dir or home / "page-images"
     args.keep_page_images = args.keep_page_images or any(v.get("page_images") for v in args.variants)
     for variant in args.variants:
-        if set(variant) - VARIANT_KEYS or variant.get("protocol", "cited") not in ("cited", "values"):
+        if set(variant) - VARIANT_KEYS or variant.get("protocol", "cited") not in (
+            "cited",
+            "values",
+            "oneshot",
+        ):
             raise ValueError(f"Unsupported variant: {variant}")
     if len(set(names)) != len(names) or (
         len(names) > 1 and not all(re.fullmatch(r"[A-Za-z0-9-]+", n) for n in names)

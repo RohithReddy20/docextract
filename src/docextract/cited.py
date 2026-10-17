@@ -109,8 +109,11 @@ class CitedTask(Contract):
     page_images: tuple[str, ...] = ()
     # Longest side the images are shown at (smaller images cost fewer prompt tokens); None: as stored.
     page_image_side: int | None = None
-    # "cited": a source reference with every value; "values": plain values that code locates.
-    protocol: Literal["cited", "values"] = "cited"
+    # "cited": a source reference with every value; "values": plain values that code locates;
+    # "oneshot": the whole document (every page image and its text layer) answered in one JSON object.
+    protocol: Literal["cited", "values", "oneshot"] = "cited"
+    # Each page's own PDF text, for a "oneshot" request.
+    page_texts: tuple[str, ...] = ()
 
     @property
     def prompt_schema(self) -> dict[str, Any]:
@@ -983,14 +986,37 @@ def extract_cited(
     page_images: Path | None = None,
     max_window_pages: int = 4,
     nulls_if_partial: bool = False,
-    protocol: Literal["cited", "values"] = "cited",
+    protocol: Literal["cited", "values", "oneshot"] = "cited",
     route_groups: bool = False,
     prompt_budget_chars: int | None = None,
     factor_notes: bool = False,
     merge_entities: bool = False,
     page_image_side: int | None = None,
     page_image_side_split: int | None = None,
+    oneshot_dpi: int | None = None,
 ) -> ExtractionResult:
+    if protocol == "oneshot":
+        from docextract.oneshot import extract_oneshot
+
+        options = {
+            key: value for key, value in locals().items() if key not in ("protocol", "extract_oneshot")
+        }
+
+        def windowed():
+            # Too large for one request (or cut off): the windowed plain-value pipeline answers instead.
+            arguments = {key: value for key, value in options.items() if key != "oneshot_dpi"}
+            return extract_cited(**arguments, protocol="values")
+
+        return extract_oneshot(
+            document,
+            schema,
+            workspace=workspace,
+            backend=backend,
+            parser=parser,
+            dpi=oneshot_dpi,
+            page_images=page_images,
+            fallback=windowed,
+        )
     compiled = Schema(schema)
     compiled.require_supported()
     fault = fault or (lambda stage, task: None)
