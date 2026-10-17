@@ -1,0 +1,50 @@
+manifests/model-research.json
+  s_eaf722cf290d93::t_5df985309647a6 119-140,143-144,152,158,164,168-194,203,208,213,218,221-223,225
+  s_eaf722cf290d93::t_10e5685013cd57 118
+src/docextract/vllm_engine.py
+  s_eaf722cf290d93::t_a6d19e84944582 44,47,76-77,108
+  s_eaf722cf290d93::t_adcc6ecf4d531e 111,140-142
+tests/test_oneshot.py
+  s_eaf722cf290d93::t_3b8fb13bf5581d 1-28
+  s_eaf722cf290d93::t_74194a36af9723 136-215
+  s_eaf722cf290d93::t_3bac0ab7f3b51d 115,118
+  s_eaf722cf290d93::t_74a1e585a58abb 29-66
+  s_eaf722cf290d93::t_37bfb2e9d1ff8c 73
+  s_eaf722cf290d93::t_ffccfe9398a94e 67-72,74-105
+  s_eaf722cf290d93::t_5b805d9b76279c 106-114,116-117,119-135
+  s_eaf722cf290d93::t_9e5d2047813ba1 216-224
+tools/extract_remote.py
+  s_eaf722cf290d93::t_a6d19e84944582 170,199-200
+  s_eaf722cf290d93::t_60939e00757506 28,165-168,214-217,238-240,252-256
+src/docextract/cited.py
+  s_eaf722cf290d93::t_adcc6ecf4d531e 112-116,989,996,998-1019
+src/docextract/oneshot.py
+  s_eaf722cf290d93::t_09711c0efcedd2 1-13,24-111,114-135
+  s_eaf722cf290d93::t_172d41f7675b5f 290-292,302,308
+  s_eaf722cf290d93::t_9e5d2047813ba1 440-443,481-484
+  s_eaf722cf290d93::t_74a1e585a58abb 159-241
+  s_eaf722cf290d93::t_e9b3fc10ac5701 20,286-289,299,301,310-320,322,336,342-439,444-480,485-515
+  s_eaf722cf290d93::t_d52f0c5976a250 14-19,21-23,136-158
+  s_eaf722cf290d93::t_ffccfe9398a94e 242-243,246-264,267-285,293-298,300,303-307,309,321,323-335,337-341
+  s_eaf722cf290d93::t_aaea0cf393f6f5 244-245,265-266
+  s_eaf722cf290d93::t_3bac0ab7f3b51d 112-113
+src/docextract/remote.py
+  s_eaf722cf290d93::t_adcc6ecf4d531e 236-241
+  s_eaf722cf290d93::t_5df985309647a6 336
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b30290f889dbe35093ef7773d562361776693f3",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
