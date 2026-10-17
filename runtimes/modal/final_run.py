@@ -327,6 +327,12 @@ def extract(config: dict, shard: int, ids: list[str], deadline: float) -> dict:
         str(config.get("speculative_tokens", 0)),
         "--variants",
         json.dumps(variants_of(config)),
+        *(["--quantization", config["quantization"]] if config.get("quantization") else []),
+        *(
+            ["--max-document-pages", str(config["max_document_pages"])]
+            if config.get("max_document_pages")
+            else []
+        ),
     ]
     started = time.time()
     code = run(command, deadline=deadline, commit=work.commit, log=output / "engine.log")
@@ -501,12 +507,11 @@ def main(config: str, confirm_usd: float = 0.0, stage: str = "all"):
     if confirm_usd < estimate:
         raise SystemExit("Not launched: pass --confirm-usd at least equal to the stated estimate")
     if stage == "remote":
-        # Run with `modal run --detach`: the whole run is driven by a job on Modal, which keeps going
-        # (and keeps saving answers and scores to the work volume) if this machine disconnects.
-        print(
-            json.dumps(
-                orchestrate.with_options(timeout=int(total_hours(settings) * 3600) + 900).remote(settings)
-            )
-        )
+        # Run with `modal run --detach`: the whole run is spawned as one job on Modal and this command
+        # returns at once, so nothing here waits on it. (final-v1 waited on the job instead; when this
+        # machine lost its connection the waiting call failed and Modal cancelled the job, its GPU
+        # shards and the scoring.) Answers and scores still go to the work volume.
+        call = orchestrate.with_options(timeout=int(total_hours(settings) * 3600) + 900).spawn(settings)
+        print(f"Spawned {call.object_id}; results go to runs/{settings['name']}/export in docextract-work")
         return
     pipeline(settings)
