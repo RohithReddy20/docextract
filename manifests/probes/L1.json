@@ -1,0 +1,29 @@
+{
+  "name": "L1",
+  "purpose": "Whole-document requests for documents that overflowed or are long: one 28-page scan that exceeded the 131K window, and four unseen long documents (62-77 pages) with small answers; page images shrink by a quarter per round until the request fits a 196K window.",
+  "packet": "final-v1",
+  "ids": [
+    "edae00878d00d6d2",
+    "2d22492513837154",
+    "fa1a37d3742eb148",
+    "1cfc2a1c461a25a0",
+    "39768f2d6051ceb4"
+  ],
+  "engine": {
+    "max_model_len": 196608,
+    "max_images": 128,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 25,
+  "methods": [
+    {
+      "name": "one-150+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 16384
+    }
+  ]
+}

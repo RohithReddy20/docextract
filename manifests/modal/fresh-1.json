@@ -1,0 +1,49 @@
+{
+  "note": "Fresh check of the image-first method through the product pipeline (launcher -> extract_remote -> extract_cited protocol oneshot -> official scoring): 17 documents never used in development or probes (6 digital and 6 scanned short documents, 5 medium documents with answers under 10K tokens), Qwen3.5-9B with FP8 weights.",
+  "name": "fresh-1",
+  "arm": "c",
+  "dtype": "bfloat16",
+  "quantization": "fp8",
+  "ids": [
+    "264ea1eb5c547829",
+    "20881bda45913234",
+    "5a25672772ad21fa",
+    "f9f2650a08f31b62",
+    "59c41b5c3cbea833",
+    "639dc53f545796cd",
+    "08ec88d2a94e1325",
+    "b24ef1e834649bac",
+    "a699a9ca9e5f6824",
+    "57fba04293b5ed6d",
+    "775951ef0ccb944d",
+    "53bf844c9545dabc",
+    "8cc8a79e7122d8a9",
+    "40b6ceb4ef8a148a",
+    "be38016b1bc2663c",
+    "c3a8d126288468e8",
+    "47c777d2dff6154f"
+  ],
+  "shards": 1,
+  "gpu_hours": 0.4,
+  "prepare_hours": 0.25,
+  "score_hours": 0.25,
+  "max_window_chars": 24000,
+  "max_schema_chars": 24000,
+  "max_new_tokens": 16384,
+  "max_model_len": 131072,
+  "max_num_seqs": 32,
+  "gpu_memory_utilization": 0.92,
+  "ocr": "doctr",
+  "speculative_tokens": 2,
+  "max_document_pages": 64,
+  "absent_nullable": "null",
+  "complete_tables": false,
+  "final": false,
+  "variants": [
+    {
+      "name": "",
+      "protocol": "oneshot",
+      "page_images": true
+    }
+  ]
+}

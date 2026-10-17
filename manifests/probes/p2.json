@@ -1,0 +1,57 @@
+{
+  "name": "p2",
+  "purpose": "Same eight documents: repeat the best p1 method (noise), and test the text layer, thinking, 200 DPI, and an instruction to follow each field's description.",
+  "packet": "final-v1",
+  "ids": [
+    "629d8c17b4ea2065",
+    "09ad2a75f0fcb366",
+    "c82bbdef3f6af2db",
+    "47e0885c85104a3c",
+    "3888a81d7a6f95c1",
+    "64dbbac9b38e6792",
+    "0c8085febe38a5a1",
+    "6cbc887d541ee4c1"
+  ],
+  "engine": {
+    "max_model_len": 131072,
+    "max_images": 16,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 15,
+  "methods": [
+    {
+      "name": "nothink",
+      "template_options": {
+        "enable_thinking": false
+      }
+    },
+    {
+      "name": "nothink+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "text_layer": true
+    },
+    {
+      "name": "think",
+      "template_options": {
+        "enable_thinking": true
+      },
+      "json_object": false
+    },
+    {
+      "name": "nothink-200dpi",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200
+    },
+    {
+      "name": "nothink-rules",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "user_instruction": "Extract every field from the attached document according to the schema. Return JSON only. Use null for fields not present in the document. Whenever the schema declares a list field, enumerate every row visible in the document - do not collapse rows or return an empty list when rows are present. Each field's description defines how to read and format its value (which source label, checkbox meaning, number and date format, when to leave it null); follow those rules exactly."
+    }
+  ]
+}

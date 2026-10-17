@@ -1,0 +1,49 @@
+{
+  "name": "q9-1",
+  "purpose": "Qwen3.5-9B (weights quantized to FP8 at load) against Qwen3.5-4B on the 24 check-1 short documents, best method (200 DPI + text layer, thinking off).",
+  "packet": "final-v1",
+  "ids": [
+    "04f8aef1c4eae056",
+    "86279303cfd48372",
+    "b10437a181d65650",
+    "933c7dda5daa8dca",
+    "8062f7e8695b857a",
+    "25bbb7fc5c04fd7e",
+    "7465638aed1b740b",
+    "6cf53325c1d39076",
+    "b85e4229028efef8",
+    "ae494f04e2d9faa9",
+    "008d8477a0383aa5",
+    "b68b1026437920a4",
+    "f25b65c8a17bd37a",
+    "e46c32ea4af33997",
+    "f697dcbe6b5158db",
+    "167ca9800b481f43",
+    "0605af596fb693bf",
+    "1286d0dd3e69807f",
+    "7203e76d9a094233",
+    "bc56af96c64b8682",
+    "0338c91c65a2c975",
+    "bab533b6980dafdb",
+    "2feed6278bc03c8f",
+    "589c7a7ae4b76e9e"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 65536,
+    "max_images": 16,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 20,
+  "methods": [
+    {
+      "name": "9b-200+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true
+    }
+  ]
+}

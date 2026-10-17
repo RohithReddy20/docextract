@@ -1,0 +1,73 @@
+{
+  "name": "s3",
+  "purpose": "Short documents (the 24 check-1 documents): the best method so far (200 DPI + text layer) against 250 DPI, an instruction to copy values verbatim, and an instruction on reading check boxes.",
+  "packet": "final-v1",
+  "ids": [
+    "04f8aef1c4eae056",
+    "86279303cfd48372",
+    "b10437a181d65650",
+    "933c7dda5daa8dca",
+    "8062f7e8695b857a",
+    "25bbb7fc5c04fd7e",
+    "7465638aed1b740b",
+    "6cf53325c1d39076",
+    "b85e4229028efef8",
+    "ae494f04e2d9faa9",
+    "008d8477a0383aa5",
+    "b68b1026437920a4",
+    "f25b65c8a17bd37a",
+    "e46c32ea4af33997",
+    "f697dcbe6b5158db",
+    "167ca9800b481f43",
+    "0605af596fb693bf",
+    "1286d0dd3e69807f",
+    "7203e76d9a094233",
+    "bc56af96c64b8682",
+    "0338c91c65a2c975",
+    "bab533b6980dafdb",
+    "2feed6278bc03c8f",
+    "589c7a7ae4b76e9e"
+  ],
+  "engine": {
+    "max_model_len": 131072,
+    "max_images": 16,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 20,
+  "methods": [
+    {
+      "name": "200+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true
+    },
+    {
+      "name": "250+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 250,
+      "text_layer": true
+    },
+    {
+      "name": "200+text+verbatim",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true,
+      "user_instruction": "Extract every field from the attached document according to the schema. Return JSON only. Use null for fields not present in the document. Whenever the schema declares a list field, enumerate every row visible in the document - do not collapse rows or return an empty list when rows are present. Copy each value exactly as it is printed (same spelling, punctuation and capitalization); do not add units, labels or footnote marks that are not part of the value."
+    },
+    {
+      "name": "200+text+checkbox",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true,
+      "user_instruction": "Extract every field from the attached document according to the schema. Return JSON only. Use null for fields not present in the document. Whenever the schema declares a list field, enumerate every row visible in the document - do not collapse rows or return an empty list when rows are present. A check-box field is true only when its box is visibly marked (an X, a tick or a filled box) and false when the box is empty."
+    }
+  ]
+}

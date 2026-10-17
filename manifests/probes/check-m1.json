@@ -1,0 +1,30 @@
+{
+  "name": "check-m1",
+  "purpose": "Generalization check for medium documents: six unseen medium documents (11-30 pages, at most 700 expected values), picked by hash order; whole document in one request at 150 DPI with the text layer.",
+  "packet": "final-v1",
+  "ids": [
+    "f8dff9e23b123092",
+    "dedc4be8261838dc",
+    "edae00878d00d6d2",
+    "4df53ae7992b0cd1",
+    "9c133d42224b427c",
+    "dfa54f30644ec977"
+  ],
+  "engine": {
+    "max_model_len": 131072,
+    "max_images": 32,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 20,
+  "methods": [
+    {
+      "name": "one-150+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 16384
+    }
+  ]
+}

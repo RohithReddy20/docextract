@@ -1,0 +1,36 @@
+{
+  "name": "p1",
+  "purpose": "Reproduce ExtractBench's one-shot Qwen3.5-4B recipe on eight short documents (six where final-v1 scored low, two where it scored high), with the template's thinking switch off, and with the PDF text layer added.",
+  "packet": "final-v1",
+  "ids": [
+    "629d8c17b4ea2065",
+    "09ad2a75f0fcb366",
+    "c82bbdef3f6af2db",
+    "47e0885c85104a3c",
+    "3888a81d7a6f95c1",
+    "64dbbac9b38e6792",
+    "0c8085febe38a5a1",
+    "6cbc887d541ee4c1"
+  ],
+  "engine": {
+    "max_model_len": 131072,
+    "max_images": 16,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 15,
+  "methods": [
+    {
+      "name": "baseline"
+    },
+    {
+      "name": "nothink",
+      "template_options": {
+        "enable_thinking": false
+      }
+    },
+    {
+      "name": "baseline+text",
+      "text_layer": true
+    }
+  ]
+}

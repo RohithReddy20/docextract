@@ -1,0 +1,47 @@
+{
+  "name": "m1",
+  "purpose": "Medium documents (13-21 pages: two digital labour/price tables, a digital holdings list, a scanned repair estimate): whole document in one request at 150 and 200 DPI with the text layer, against 5-page batches merged in page order.",
+  "packet": "final-v1",
+  "ids": [
+    "a48915a5910ffac3",
+    "1747205eeda69f94",
+    "7c4423de17379088",
+    "61deb1aee9af43e3"
+  ],
+  "engine": {
+    "max_model_len": 131072,
+    "max_images": 32,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 20,
+  "methods": [
+    {
+      "name": "one-150+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 16384
+    },
+    {
+      "name": "one-200+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true,
+      "max_tokens": 16384
+    },
+    {
+      "name": "batch5-200+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true,
+      "pages_per_request": 5,
+      "max_tokens": 8192
+    }
+  ]
+}

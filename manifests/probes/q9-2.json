@@ -1,0 +1,74 @@
+{
+  "name": "q9-2",
+  "purpose": "Qwen3.5-9B (FP8 weights) on ten medium documents (m1 and check-m1: whole document at 150 DPI with the text layer) and the eight hard short documents of p1 (200 DPI with the text layer), against the 4B results.",
+  "packet": "final-v1",
+  "ids": [
+    "a48915a5910ffac3",
+    "1747205eeda69f94",
+    "7c4423de17379088",
+    "61deb1aee9af43e3",
+    "f8dff9e23b123092",
+    "dedc4be8261838dc",
+    "edae00878d00d6d2",
+    "4df53ae7992b0cd1",
+    "9c133d42224b427c",
+    "dfa54f30644ec977",
+    "629d8c17b4ea2065",
+    "09ad2a75f0fcb366",
+    "c82bbdef3f6af2db",
+    "47e0885c85104a3c",
+    "3888a81d7a6f95c1",
+    "64dbbac9b38e6792",
+    "0c8085febe38a5a1",
+    "6cbc887d541ee4c1"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 131072,
+    "max_images": 32,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 25,
+  "methods": [
+    {
+      "name": "9b-medium",
+      "ids": [
+        "a48915a5910ffac3",
+        "1747205eeda69f94",
+        "7c4423de17379088",
+        "61deb1aee9af43e3",
+        "f8dff9e23b123092",
+        "dedc4be8261838dc",
+        "edae00878d00d6d2",
+        "4df53ae7992b0cd1",
+        "9c133d42224b427c",
+        "dfa54f30644ec977"
+      ],
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 24576
+    },
+    {
+      "name": "9b-short",
+      "ids": [
+        "629d8c17b4ea2065",
+        "09ad2a75f0fcb366",
+        "c82bbdef3f6af2db",
+        "47e0885c85104a3c",
+        "3888a81d7a6f95c1",
+        "64dbbac9b38e6792",
+        "0c8085febe38a5a1",
+        "6cbc887d541ee4c1"
+      ],
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 200,
+      "text_layer": true
+    }
+  ]
+}
