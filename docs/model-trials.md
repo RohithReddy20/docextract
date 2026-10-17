@@ -86,6 +86,81 @@ are from the official `ExtractEvaluator` in a separate process.
   output tokens in 30 GPU-minutes including start-up. At this rate the full benchmark needs about
   7.5-8 L4 hours. `manifests/trials/modal-rehearsal-1.json`.
 
+- **Full benchmark, final-v1 (all 370 documents, frozen settings, three L4 shards; partial).** Value
+  F1 **0.747** over all 370 (short 0.834, medium 0.600, long 0.370; unseen 0.743 on 299, seen 0.765 on
+  71), grounded 0.39, page 0.53. The run stopped early: two shards were preempted 34 minutes in and
+  resumed from stored answers, and after 2.4 hours the launching machine lost its connection while the
+  launcher waited on the orchestrating call, so Modal cancelled the run about 15 minutes before its
+  deadline (the launcher now spawns the run and returns). 301 documents finished and score **0.819**
+  (unseen 0.825), matching the rehearsal; 69 did not (13 short, 42 medium, 14 long; 1,724 requests
+  still queued) and score 0.435 from partial answers. The rehearsal under-predicted the work: 592 of
+  2,154 answers (27%) reached the 6,144-token output limit on long tables (3% in the rehearsal), and
+  with the KV cache full each L4 ran about 20 requests at once (about 600 prompt and 340 output tokens
+  per second). 13.0M prompt and 6.3M output tokens; finishing needs roughly 5-6 more L4 hours.
+  `manifests/trials/final-v1.json`.
+
+- **Comparison with the leaderboard.** ExtractBench's own one-shot run of the same model
+  (`qwen3_5_4b_vllm_extract_oneshot_structured_output_file`: every page as a 150-DPI image, the full schema,
+  JSON-object output) scores 82.4 overall and 89.1 on short documents, above final-v1 (74.7, short 83.4).
+  On finished short documents final-v1 lost on digital PDFs (84.2), which it read as text only, on
+  check boxes (21% of check-box fields wrong), on scans where the model copied OCR misreadings, and on
+  filling fields the answer key leaves empty.
+
+- **Probes (one L4, a few documents, several methods per model load; `runtimes/modal/probe.py`,
+  `tools/probe_jobs.py`, `tools/score_probe.py`).** Eight short documents (six final-v1 scored badly,
+  two it scored well): final-v1 47.9; the leaderboard recipe 67.3 with the template as shipped (it opens
+  a think block that the JSON constraint then cuts off) and 75.2 with thinking switched off; repeated
+  runs agree on 7 of 8 documents. 200-DPI images 81.0 against 77.9 at 150 DPI (seven documents both
+  finished); the PDF text layer helps dense tables and hurts documents whose text layer is broken;
+  an extra instruction to follow field descriptions lowered scores; thinking did not finish within
+  10 minutes. On 24 short documents never used before (12 digital, 12 scanned): final-v1 85.1,
+  one-shot 150 DPI 87.9, 200 DPI 89.9, 200 DPI with the text layer **91.1** (digital 81.7 → 92.9,
+  scanned 88.5 → 89.2). `manifests/probes/`.
+
+- **Medium and long documents, whole document in one request.** Four medium documents (13-21 pages):
+  final-v1 67.8, whole document at 150 DPI with the text layer **90.3**, at 200 DPI 89.2, 5-page
+  batches merged 79.7 (the model needs the whole document). Six unseen medium documents: final-v1
+  80.6, whole document 86.3 when a refused request (a 760K-character schema) or a cut-off answer takes
+  the old pipeline's result. Five long documents (28-77 pages) with small answers: final-v1 62.6,
+  hybrid 76.5 (20 → 77 on one). Page images shrink by a quarter per round until a request fits the
+  context window.
+
+- **Evidence located after extraction (`docextract.oneshot.locate_evidence`, CPU only).** Each printed
+  value is found in the stored parse (native text or OCR) in document order and cited by page and box.
+  On the 24 unseen short documents: grounded F1 56.2 and page F1 70.9, against 44.8 and 65.5 for
+  final-v1's cited pipeline. Typing answers to the schema (`conform`: numbers for string fields printed
+  without ".0", two-state check boxes left empty become false) adds 0.6 value F1.
+
+- **Run-to-run noise.** Repeating the 200-DPI method on the same 24 documents gave 91.7 and 89.8:
+  vLLM's batching changes greedy outputs on some documents by up to 8 points, so a 24-document test
+  only separates methods that differ by about 3 points or more. 250 DPI, an instruction to copy values
+  verbatim and an instruction on check boxes all landed within that noise (89.5-90.7).
+
+- **Large answers in one request (32K output tokens).** Four medium documents whose answers run
+  20-24K tokens (financial statements final-v1 never finished): 38.2 → 100.0, 16.9 → 99.8,
+  1.2 → 96.7, and a 77-page document (images shrunk once to fit) 80.4 → 100.0; a fifth was still
+  writing at the deadline. Long answers decode at about 25 tokens per second per request, so such
+  documents cost about $0.1 each; 52 documents expect more than 10K output tokens.
+
+- **Qwen3.5-9B with FP8 weights (Apache-2.0; 11.1 GiB on the L4, 176K tokens of KV cache).** Same
+  method, same documents: 24 short check documents 93.2 against 91.7 and 89.8 for two Qwen3.5-4B runs
+  (scanned 89.2 → 92.9); eight hard short documents 82.0 against 77.4; seven medium documents both
+  models finished 95.9 against 90.8. ExtractBench's leaderboard shows the same order (one-shot 9B 86.1,
+  4B 82.4). Generation took about as long as with the 4B; the first load (FP8 quantization, no compile
+  cache) took 5 minutes. `manifests/probes/q9-1.json`, `q9-2.json`.
+
+- **Locating evidence by labels (rejected).** Choosing, among repeated occurrences of a value, the one
+  printed after its field's name lowered grounded F1 on three of five probe sets (long documents
+  26.1 → 19.1); evidence stays in document order.
+
+- **Fresh check through the product pipeline (fresh-1).** 17 documents never used before (12 short,
+  5 medium), Qwen3.5-9B FP8, launcher → `tools/extract_remote.py --protocol oneshot` → official
+  scoring. The 24-minute GPU limit stopped three documents before their answers (two medium, one short);
+  on the 14 answered: 93.8 against 82.3 for final-v1 (short 93.9 vs 89.2, medium 93.4 vs 57.0). Citing
+  one box per page instead of one per text line raised grounded F1 on the same answers from 37.8 to
+  41.1. An unanswered document is now left empty and marked partial (before, two-state check boxes
+  filled in from an empty answer scored 64.6 on one document). `manifests/trials/fresh-1.json`.
+
 ## Native value generation, first smoke
 
 Frozen source archive: `bf9ba39901f69ae2eea477fa82464874d6ab10b7d86976a5e696b0ebc6017dce`.

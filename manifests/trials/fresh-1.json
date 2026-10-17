@@ -1,0 +1,81 @@
+{
+  "version": "extractbench-dev-trial/1",
+  "trial": "fresh-1",
+  "population": "17 documents never used in development or probes (6 digital and 6 scanned short documents, 5 medium documents with answers under 10K tokens), picked by hash order",
+  "settings": "manifests/modal/fresh-1.json: product pipeline (launcher -> tools/extract_remote.py -> extract_cited protocol oneshot), Qwen3.5-9B with FP8 weights, whole document per request (200 DPI up to 10 pages, else 150), native text layer, JSON object output, answers typed to the schema, evidence located in the parsed text; one L4 with a 24-minute limit",
+  "outcome": "14 of 17 documents answered; the time limit stopped two medium documents and one short one before their answers (they score as empty answers in the official groups below)",
+  "groups": {
+    "all": {
+      "documents": 17,
+      "scored_results": 17,
+      "value_f1": 0.8118,
+      "value_f1_nulls_omitted": 0.8118,
+      "grounded_f1": 0.3777,
+      "page_f1": 0.4744
+    },
+    "short": {
+      "documents": 12,
+      "scored_results": 12,
+      "value_f1": 0.9142,
+      "value_f1_nulls_omitted": 0.9142,
+      "grounded_f1": 0.3214,
+      "page_f1": 0.4614
+    },
+    "medium": {
+      "documents": 5,
+      "scored_results": 5,
+      "value_f1": 0.5659,
+      "value_f1_nulls_omitted": 0.5659,
+      "grounded_f1": 0.5324,
+      "page_f1": 0.503
+    },
+    "unseen": {
+      "documents": 17,
+      "scored_results": 17,
+      "value_f1": 0.8118,
+      "value_f1_nulls_omitted": 0.8118,
+      "grounded_f1": 0.3777,
+      "page_f1": 0.4744
+    }
+  },
+  "answered": {
+    "documents": 14,
+    "value_f1": 93.8,
+    "final_v1_value_f1": 82.3,
+    "short": {
+      "documents": 11,
+      "value_f1": 93.9,
+      "final_v1_value_f1": 89.2
+    },
+    "medium": {
+      "documents": 3,
+      "value_f1": 93.4,
+      "final_v1_value_f1": 57.0
+    }
+  },
+  "unanswered_documents": [
+    "8cc8a79e7122d8a9",
+    "a699a9ca9e5f6824",
+    "c3a8d126288468e8"
+  ],
+  "value_f1_by_document": {
+    "59c41b5c3cbea833": 1.0,
+    "5a25672772ad21fa": 0.9942,
+    "08ec88d2a94e1325": 0.8966,
+    "57fba04293b5ed6d": 0.9872,
+    "53bf844c9545dabc": 0.7455,
+    "775951ef0ccb944d": 0.8841,
+    "639dc53f545796cd": 0.9146,
+    "b24ef1e834649bac": 0.9744,
+    "a699a9ca9e5f6824": 0.6457,
+    "264ea1eb5c547829": 0.9787,
+    "f9f2650a08f31b62": 0.9692,
+    "20881bda45913234": 0.9808,
+    "8cc8a79e7122d8a9": 0.0167,
+    "47c777d2dff6154f": 0.8989,
+    "40b6ceb4ef8a148a": 0.9977,
+    "c3a8d126288468e8": 0.0091,
+    "be38016b1bc2663c": 0.9068
+  },
+  "evidence": "on the same answers, one citation box per page raised grounded F1 from 37.8 to 41.1 against one box per text line (page F1 50.6 either way); citations are now one box per page"
+}

@@ -25,5 +25,11 @@ The benchmark extra is optional and never imported by production modules. Keep t
 separate tool/environment and review its distribution obligations before bundling it into a product.
 Commercial use and permissive redistribution are different questions.
 
-No model has been selected or installed. Verify pinned checkpoint licenses, quantization/runtime
-dependencies, source datasets and required notices before adding a model backend or training data.
+`docextract.oneshot` reuses the request text of ExtractBench's one-shot vLLM baseline (its system
+prompt, user instruction and request template, run-llama/ExtractBench at 0e76479, Apache-2.0); the
+module says so where the text appears. Production modules still do not import the benchmark package.
+
+Models are pinned by revision and file hashes in `manifests/model-research.json` and run only on remote
+workers: Qwen/Qwen3.5-4B and Qwen/Qwen3.5-9B (both Apache-2.0, license files verified against the pinned
+revisions). FP8 quantization happens at load inside vLLM; no converted weights are distributed. Verify
+runtime dependencies, source datasets and required notices before redistributing a model backend.

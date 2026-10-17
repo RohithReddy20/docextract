@@ -10,10 +10,17 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
   coordinates; schema support for all 70 ExtractBench schemas (JSON Schema 2020-12 and Draft 7);
   record assembly that keeps identical printed rows separate; null/missing/default handling;
   crash-safe resumable processing; official ExtractBench output and scoring adapters.
-- **Model extraction (no manual mappings):** the model fills the user's schema with plain values and
-  code locates every value in the document, keeping its exact characters and page position as
-  evidence (a mode where the model cites a source cell for each value is kept as an option). Models
-  run only on Kaggle and Modal; nothing is downloaded locally.
+- **Model extraction (no manual mappings):** in the recommended mode the whole document goes to the
+  model in one request — every page as an image, the PDF's own text layer and the full schema — and
+  the model answers with one JSON object (`extract_cited(..., protocol="oneshot")`, `docextract.oneshot`;
+  `--protocol oneshot` in `tools/extract_remote.py`, as in `manifests/modal/fresh-1.json`). The
+  answer is typed to the schema and every printed value is then located in the parsed page text
+  (native text or OCR), so each value keeps its page and box as evidence. A request too long for the
+  model's window is retried with smaller page images; one that still does not fit, or an answer cut
+  off at the output limit, falls back to the windowed pipeline (plain values per window, located by
+  code). Recommended model: Qwen3.5-9B (Apache-2.0; `--arm c --quantization fp8`), weights quantized
+  to FP8 at load so it fits a 24 GB L4. Models run only on Kaggle and Modal; nothing is downloaded
+  locally.
 - **Built for the real benchmark, being measured now:** OCR (docTR) for pages without a text layer,
   with sideways and upside-down scans read upright; filled PDF form fields read as text;
   splitting oversized schemas into field groups; streamed generation with vLLM (which runs
@@ -25,20 +32,30 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
 - **Measured about ExtractBench** ([workload](manifests/workload-inventory.json)): 24% of its 4,869
   pages have no text layer and 130 of 370 documents are entirely image-only; schemas reach ~158K
   tokens (56 documents exceed 12K); 20 long documents hold most of the answer volume.
-- **ExtractBench, measured on samples (not the full benchmark):** value F1 **0.82** on 29 documents
-  never looked at before (dress rehearsal with the final settings on Modal L4: short 0.86, medium 0.73,
-  long 0.77), and 0.76 on another 20 unseen documents on Kaggle T4s; the first measurement on the
-  development documents was 0.57. An empty answer scores 0.31. Qwen3.5-4B, open weights
-  ([details](docs/model-trials.md)).
-- **Not done yet:** the single full-benchmark run (all 370 documents, Modal L4) has not been launched;
-  handwriting is untested; multi-line table cells across columns are not reassembled;
-  multi-column reading order is naive; values continued onto the next page are still missed. The
-  Modal launcher (`runtimes/modal/final_run.py`) has run the research sessions; it prints its
-  worst-case cost offline and refuses a final run until the configuration is frozen.
+- **ExtractBench, full benchmark (partial run, previous pipeline):** value F1 **0.747** over all 370
+  documents (short 0.834, medium 0.600, long 0.370; the 299 documents never looked at during
+  development 0.743). The run was cut short: 301 documents finished and score 0.819; 69 (mostly medium
+  and long) did not finish ([record](manifests/trials/final-v1.json)). ExtractBench's own one-shot run of
+  Qwen3.5-4B scores 82.4, which showed that the windowed text-first pipeline lost accuracy.
+- **Since then, measured on samples only (no further full run):** the whole-document method beat the
+  previous pipeline on every sample ([details](docs/model-trials.md)). On 17 documents never used
+  before, through the product pipeline with Qwen3.5-9B: 93.8 against 82.3 on the 14 that were answered
+  before the time limit (short 93.9 vs 89.2, medium 93.4 vs 57.0;
+  [record](manifests/trials/fresh-1.json)). Earlier probes: 24 unseen short documents 85.1 → 93.2 (9B);
+  medium documents 67.8 → 90.3 and 90.8 → 95.9 (4B → 9B); medium documents with 20K-token answers that
+  the full run never finished 34 → 99; long documents with small answers 62.6 → 76.5. Evidence located
+  after extraction: grounded F1 56.2 vs 44.8 on 24 short documents. Probes run with
+  `runtimes/modal/probe.py` (a few documents, several methods per model load, a few cents each).
+- **Not done yet:** documents whose answers run beyond about 32K tokens (14 long documents list
+  40K-500K tokens of rows) still go through the windowed pipeline, which is slow and was cut short in the
+  full run; schemas too large for one request (the 155K-token tax return) likewise; evidence for long
+  documents is weaker than the windowed pipeline's (the same value printed in many places); handwriting
+  is untested. The Modal launcher (`runtimes/modal/final_run.py`) prints its worst-case cost offline,
+  refuses a final run until the configuration is frozen, and spawns runs so a disconnect cannot stop them.
 
 A deterministic baseline that needs hand-written label/column mappings (`bindings`) is kept as a
-contract test; it is not general extraction. The final configuration uses Qwen3.5-4B
-(`manifests/final-run.json`).
+contract test; it is not general extraction. The frozen full-run configuration (`manifests/final-run.json`)
+used Qwen3.5-4B and the windowed pipeline; the recommended mode is described above.
 
 ## Run the authored example
 
