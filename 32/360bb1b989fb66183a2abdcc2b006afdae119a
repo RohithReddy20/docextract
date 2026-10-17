@@ -1,0 +1,19 @@
+src/docextract/integrations/extractbench.py
+  s_eaf722cf290d93::t_ea1ff0f381515a 56-58,62-63,66-75,83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "32360bb1b989fb66183a2abdcc2b006afdae119a",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
