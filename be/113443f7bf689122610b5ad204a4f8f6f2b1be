@@ -1,0 +1,26 @@
+README.md
+  s_eaf722cf290d93::t_9f7ec641343065 19-23
+  s_eaf722cf290d93::t_7f605bf14538dd 52-60
+docs/model-trials.md
+  s_eaf722cf290d93::t_0e1346a8706af6 183
+  s_eaf722cf290d93::t_e61403f765b4c8 164-182,184-185
+  s_eaf722cf290d93::t_09be6e4444bfe9 186-192
+  s_eaf722cf290d93::t_7f605bf14538dd 203-210
+  s_eaf722cf290d93::t_0d7a536ede912a 193-202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "be113443f7bf689122610b5ad204a4f8f6f2b1be",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
