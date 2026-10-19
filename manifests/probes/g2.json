@@ -1,0 +1,37 @@
+{
+  "name": "g2",
+  "purpose": "Stopped after 8 minutes. JSON without whitespace, set for the whole engine (xgrammar any_whitespace=False), emptied the answers: 52 of the 53 pages answered came back as {} or nearly so, including all 19 pages that list holdings (the model's first token after '{' is a newline; with whitespace forbidden it closes the object), and requests queued for grammar compilation ('Deferred') while generation ran at about 5 tokens/s. Not used further. Otherwise as g3.",
+  "packet": "final-v1",
+  "ids": [
+    "cf78a11e82647957",
+    "8c9f6162ee146d64"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 131072,
+    "max_images": 130,
+    "speculative_tokens": 2,
+    "compact_json": true,
+    "max_num_seqs": 24
+  },
+  "limit_minutes": 28,
+  "methods": [
+    {
+      "name": "pages-compact",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 2048,
+      "page_max_tokens": 16384,
+      "page_cap": true,
+      "context_chars": 0,
+      "split": {
+        "cf78a11e82647957": "holdings",
+        "8c9f6162ee146d64": "checks"
+      }
+    }
+  ]
+}

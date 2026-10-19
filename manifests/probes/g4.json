@@ -1,0 +1,34 @@
+{
+  "name": "g4",
+  "purpose": "Page-by-page reading as in g3 on a 123-page check register (3,308 rows, 12 fields each; final-v1 0.0): one page image at 150 DPI with its text layer, each page's output capped at four tokens per character of its text, the other fields from one whole-document request capped at 2,048 tokens; at most 24 sequences at once; pretty-printed JSON-object answers. Qwen3.5-9B FP8.",
+  "packet": "final-v1",
+  "ids": [
+    "8c9f6162ee146d64"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 131072,
+    "max_images": 130,
+    "speculative_tokens": 2,
+    "max_num_seqs": 24
+  },
+  "limit_minutes": 26,
+  "methods": [
+    {
+      "name": "pages",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 2048,
+      "page_max_tokens": 16384,
+      "page_cap": true,
+      "context_chars": 0,
+      "split": {
+        "8c9f6162ee146d64": "checks"
+      }
+    }
+  ]
+}

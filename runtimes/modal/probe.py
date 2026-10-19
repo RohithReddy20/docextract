@@ -25,7 +25,9 @@ import modal
 
 SRC = "/opt/docextract"
 WORK_DIR = "/work"
-L4_PER_HOUR = 1.18  # L4 with 4 cores and 24 GiB, Modal list prices (see final_run.py)
+L4_PER_HOUR = 1.31  # L4 with 4 cores and 40 GiB, Modal list prices (see final_run.py)
+# Requests admitted to the engine beyond those it runs at once (max_num_seqs), so it stays busy.
+SPARE_IN_FLIGHT = 8
 work = modal.Volume.from_name("docextract-work")
 app = modal.App("docextract-probe")
 
@@ -91,17 +93,48 @@ def page_texts(pdf: Path) -> list[str]:
         return texts
 
 
-@app.function(image=image, gpu="L4", cpu=4, memory=24 * 1024, volumes={WORK_DIR: work})
-def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict:
+def request_text(job: dict, first: int, last: int, total: int, texts: list[str]) -> str:
+    """The text of one request for pages `first`..`last - 1` (0-based) of a `total`-page document."""
+    text = job["user_text"]
+    if last - first < total:
+        where = f"image is page {last}" if last == first + 1 else f"images are pages {first + 1}-{last}"
+        text += (
+            f"\n\nThe {where} of a {total}-page document. Extract what "
+            f"{'this page shows' if last == first + 1 else 'these pages show'}; use null (or an empty "
+            "list) for anything not on "
+            f"{'it' if last == first + 1 else 'them'}."
+        )
+    if job.get("context_chars") and first > 0 and texts:
+        # Rows continued from the previous page may rely on its headings or on values printed only on
+        # a group's first row, so the end of that page comes along as context.
+        tail = texts[first - 1].strip()[-job["context_chars"] :]
+        if tail:
+            text += (
+                "\n\nThe end of the previous page, for context only (headings and values carried "
+                f"forward; its own records are read separately):\n{tail}"
+            )
+    if texts:
+        layer = "\n\n".join(
+            f"--- page {first + i + 1} ---\n{t.strip()}" for i, t in enumerate(texts[first:last])
+        )
+        text = f"{text}\n\nText layer of the document (may be incomplete; trust the images):\n{layer}"
+    return text
+
+
+@app.function(image=image, gpu="L4", cpu=4, memory=40 * 1024, volumes={WORK_DIR: work})
+def generate(jobs: list[dict], engine: dict, name: str, seconds: float) -> dict:
     """Answer every job in one continuous batch; each answer is saved as it finishes.
 
     Prompts are rendered per job (its own chat-template options) and run together, so a slow answer
     holds up nothing else. Answers stream to `runs/probes/<name>/answers.jsonl` in the work volume, and
-    the batch stops at `deadline` (epoch seconds), returning what finished.
+    the batch stops `seconds` after this container starts (time spent waiting for a GPU does not
+    count), returning what finished.
     """
+    deadline = time.time() + seconds
     import sys
 
     sys.path.insert(0, f"{SRC}/src")
+    from docextract.oneshot import page_output_cap
     from docextract.remote import pinned_checkpoint
 
     started = time.time()
@@ -123,11 +156,21 @@ def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict
         dtype="bfloat16",
         max_model_len=engine["max_model_len"],
         gpu_memory_utilization=0.92,
-        max_num_seqs=32,
+        # Fewer sequences than the KV cache could start: when running answers outgrow it, vLLM pushes
+        # the newest back to recompute them, and some page requests never finished.
+        max_num_seqs=engine.get("max_num_seqs", 32),
         seed=0,
         limit_mm_per_prompt={"image": engine["max_images"], "video": 0},
         enable_prefix_caching=False,
         quantization=engine.get("quantization"),
+        # Throughput, running and waiting requests in the log every few seconds.
+        disable_log_stats=False,
+        # JSON without whitespace is set for the whole engine: xgrammar ignores the per-request flag.
+        **(
+            {"structured_outputs_config": {"backend": "xgrammar", "disable_any_whitespace": True}}
+            if engine.get("compact_json")
+            else {}
+        ),
         **(
             {"speculative_config": {"method": "mtp", "num_speculative_tokens": engine["speculative_tokens"]}}
             if engine.get("speculative_tokens")
@@ -141,7 +184,8 @@ def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict
     sink = Path(WORK_DIR) / "runs" / "probes" / name / "answers.jsonl"
     sink.parent.mkdir(parents=True, exist_ok=True)
     sink.write_text("")
-    outputs, pending = [], {}
+    outputs, pending, partial = [], {}, {}
+    queue: list[tuple] = []
     number = 0
     for job in jobs:
         pdf = Path(WORK_DIR) / job["pdf"]
@@ -159,18 +203,7 @@ def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict
         spans = [(start, min(start + size, len(every))) for start in range(0, len(every), size)]
         for batch, (first, last) in enumerate(spans):
             pages = every[first:last]
-            text = job["user_text"]
-            if len(spans) > 1:
-                text += (
-                    f"\n\nThe images are pages {first + 1}-{last} of a {len(every)}-page document. Extract "
-                    "what these pages show; use null (or an empty list) for anything not on them."
-                )
-            if job.get("text_layer"):
-                layer = "\n\n".join(
-                    f"--- page {first + i + 1} ---\n{t.strip()}"
-                    for i, t in enumerate(texts[job["id"]][first:last])
-                )
-                text = f"{text}\n\nText layer of the document (may be incomplete; trust the images):\n{layer}"
+            text = request_text(job, first, last, len(every), texts.get(job["id"], []))
             messages = [
                 {"role": "system", "content": job["system"]},
                 {
@@ -188,9 +221,11 @@ def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict
                 if job.get("json_object")
                 else None
             )
-            params = SamplingParams(
-                temperature=0.0, max_tokens=job["max_tokens"], structured_outputs=structured
-            )
+            limit = job["max_tokens"]
+            if job.get("part") == "rows" and job.get("page_cap") and texts.get(job["id"]):
+                # The product's cap for one page's records, sized by the page's own text.
+                limit = min(limit, page_output_cap(texts[job["id"]][first]) or limit)
+            params = SamplingParams(temperature=0.0, max_tokens=limit, structured_outputs=structured)
             row = {
                 "id": job["id"],
                 "variant": job["variant"],
@@ -198,49 +233,61 @@ def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict
                 "batches": len(spans),
                 "pages": [first + 1, last],
                 "template_tail": prompt[-40:],
+                "part": job.get("part"),
             }
-            key = str(number)
+            queue.append((str(number), row, prompt, pages, params))
             number += 1
-            # Too long for the context window: shrink the page images (as ExtractBench's vLLM harness
-            # does, by a quarter per round, at most four rounds) and try again.
-            added, internal = False, None
-            for rounds in range(5):
-                try:
-                    internal = llm.llm_engine.add_request(
-                        key, {"prompt": prompt, "multi_modal_data": {"image": pages}}, params
+
+    def admit(key, row, prompt, pages, params):
+        """Add one request; one too long for the context window is retried with page images shrunk
+        (as ExtractBench's vLLM harness does, by a quarter per round, at most four rounds)."""
+        internal = None
+        for rounds in range(5):
+            try:
+                internal = llm.llm_engine.add_request(
+                    key, {"prompt": prompt, "multi_modal_data": {"image": pages}}, params
+                )
+                row["downscaled"] = rounds
+                break
+            except Exception as error:  # for example a prompt longer than the context window
+                too_long = any(
+                    marker in str(error) for marker in ("maximum context length", "maximum model length")
+                )
+                if not too_long or rounds == 4:
+                    row.update(
+                        raw_text="",
+                        finish_reason=f"error: {str(error)[:300]}",
+                        input_tokens=0,
+                        output_tokens=0,
                     )
-                    row["downscaled"] = rounds
-                    added = True
-                    break
-                except Exception as error:  # for example a prompt longer than the context window
-                    too_long = any(
-                        marker in str(error) for marker in ("maximum context length", "maximum model length")
-                    )
-                    if not too_long or rounds == 4:
-                        row.update(
-                            raw_text="",
-                            finish_reason=f"error: {str(error)[:300]}",
-                            input_tokens=0,
-                            output_tokens=0,
-                        )
-                        break
-                    pages = [
-                        page.resize((max(64, page.width * 3 // 4), max(64, page.height * 3 // 4)))
-                        for page in pages
-                    ]
-            if not added:
-                outputs.append(row)
-                continue
-            pending[key] = row
-            if isinstance(internal, str):
-                pending[internal] = row
+                    outputs.append(row)
+                    return
+                pages = [
+                    page.resize((max(64, page.width * 3 // 4), max(64, page.height * 3 // 4)))
+                    for page in pages
+                ]
+        pending[key] = row
+        row["request"] = key
+        active.add(key)
+        if isinstance(internal, str):
+            pending[internal] = row
+
+    # Requests are admitted a few at a time: each holds its preprocessed page images in memory until
+    # it finishes, and hundreds of page requests at once exceed the container's memory.
+    active: set[str] = set()
     last_commit = time.time()
-    while llm.llm_engine.has_unfinished_requests() and time.time() < deadline:
+    while (queue or llm.llm_engine.has_unfinished_requests()) and time.time() < deadline:
+        while queue and len(active) < engine.get("max_num_seqs", 32) + SPARE_IN_FLIGHT:
+            admit(*queue.pop(0))
+        if not llm.llm_engine.has_unfinished_requests():
+            continue
         for output in llm.llm_engine.step():
             if not output.finished:
+                partial[output.request_id] = output.outputs[0]
                 continue
             key = output.request_id if output.request_id in pending else output.request_id.rsplit("-", 1)[0]
             row = pending[key]
+            active.discard(row["request"])
             completion = output.outputs[0]
             row.update(
                 raw_text=completion.text,
@@ -255,10 +302,19 @@ def generate(jobs: list[dict], engine: dict, name: str, deadline: float) -> dict
         if time.time() - last_commit > 30:
             work.commit()
             last_commit = time.time()
+    for _, row, _, _, _ in queue:
+        pending[str(id(row))] = row
     finished = {id(row) for row in outputs}
-    for row in {id(row): row for row in pending.values()}.values():
+    unfinished = {id(row): row for row in pending.values()}
+    for row in unfinished.values():
         if id(row) not in finished:
             row.update(raw_text="", finish_reason="deadline", input_tokens=0, output_tokens=0)
+            # What an unfinished answer had written by the deadline, for diagnosis only.
+            so_far = next(
+                (partial[name] for name, owner in pending.items() if owner is row and name in partial), None
+            )
+            if so_far is not None:
+                row.update(partial_text=so_far.text, partial_tokens=len(so_far.token_ids))
             outputs.append(row)
     work.commit()
     return {
@@ -281,10 +337,9 @@ def main(jobs: str, confirm_usd: float = 0.0):
     if confirm_usd < estimate:
         raise SystemExit("Not launched: pass --confirm-usd at least equal to the stated estimate")
     name = path.parent.name
-    # The batch stops itself two minutes before the hard limit and returns what finished.
-    deadline = time.time() + limit_minutes * 60 - 120
+    # The batch stops itself two minutes before the container's time limit and returns what finished.
     result = generate.with_options(timeout=limit_minutes * 60).remote(
-        batch["jobs"], batch["engine"], name, deadline
+        batch["jobs"], batch["engine"], name, limit_minutes * 60 - 120
     )
     (path.parent / "answers.json").write_text(json.dumps(result, indent=1))
     print(

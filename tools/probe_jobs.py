@@ -34,6 +34,20 @@ def user_text(schema: dict, instruction: str) -> str:
     )
 
 
+def split_schema(schema: dict, name: str) -> tuple[dict, dict]:
+    """The schema of one top-level array alone, and the schema of everything else."""
+
+    def keep(names):
+        return {
+            **schema,
+            "properties": {key: value for key, value in schema["properties"].items() if key in names},
+            "required": [key for key in schema.get("required", []) if key in names],
+        }
+
+    others = [key for key in schema["properties"] if key != name]
+    return keep([name]), keep(others)
+
+
 def build(config: dict, data: Path) -> list[dict]:
     jobs = []
     for case_id in config["ids"]:
@@ -42,25 +56,44 @@ def build(config: dict, data: Path) -> list[dict]:
         for method in config["methods"]:
             if method.get("ids") and case_id not in method["ids"]:
                 continue  # a method may be limited to some of the documents
+            instruction = method.get("user_instruction", DEFAULT_USER_INSTRUCTION)
+            job = {
+                "id": case_id,
+                "variant": method["name"],
+                "pdf": f"packets/{config['packet']}/inference/{case_id}.pdf",
+                "system": method.get("system", DEFAULT_SYSTEM_PROMPT),
+                "user_text": user_text(prepared, instruction),
+                "dpi": method.get("dpi", 150),
+                "json_object": method.get("json_object", True),
+                "max_tokens": method.get("max_tokens", 12288),
+                # Asks for JSON without free whitespace; vLLM's xgrammar backend ignores this per-request
+                # flag, so answers are pretty-printed. (The engine option `compact_json` sets it for the
+                # whole engine, and emptied the answers: docs/model-trials.md, g2.)
+                "compact_json": method.get("compact_json", True),
+                "text_layer": method.get("text_layer", False),
+                "pages_per_request": method.get("pages_per_request"),
+                "template_options": method.get("template_options", {}),
+            }
+            split = method.get("split", {}).get(case_id)
+            if not split:
+                jobs.append(job)
+                continue
+            # A table too large for one answer: its records are read one page at a time (with the end
+            # of the previous page as context), and the other fields from the whole document.
+            rows, rest = split_schema(prepared, split)
             jobs.append(
                 {
-                    "id": case_id,
-                    "variant": method["name"],
-                    "pdf": f"packets/{config['packet']}/inference/{case_id}.pdf",
-                    "system": method.get("system", DEFAULT_SYSTEM_PROMPT),
-                    "user_text": user_text(
-                        prepared, method.get("user_instruction", DEFAULT_USER_INSTRUCTION)
-                    ),
-                    "dpi": method.get("dpi", 150),
-                    "json_object": method.get("json_object", True),
-                    "max_tokens": method.get("max_tokens", 12288),
-                    # JSON without free whitespace: the same content, but no runaway blank output.
-                    "compact_json": method.get("compact_json", True),
-                    "text_layer": method.get("text_layer", False),
-                    "pages_per_request": method.get("pages_per_request"),
-                    "template_options": method.get("template_options", {}),
+                    **job,
+                    "part": "rows",
+                    "user_text": user_text(rows, instruction),
+                    "pages_per_request": 1,
+                    "context_chars": method.get("context_chars", 1500),
+                    "max_tokens": method.get("page_max_tokens", 16384),
+                    "page_cap": method.get("page_cap", False),
                 }
             )
+            if rest["properties"]:
+                jobs.append({**job, "part": "rest", "user_text": user_text(rest, instruction)})
     return jobs
 
 

@@ -29,7 +29,7 @@ from extract_bench.schemas.extract_output import ExtractOutput, FieldCitation
 from extract_bench.schemas.pipeline_io import InferenceRequest, InferenceResult
 from score_extractbench import load_case
 
-from docextract.oneshot import conform, merge_answers
+from docextract.oneshot import carry_forward, conform, merge_answers, nullable_fields, pdf_page_texts
 
 ROOT = Path(__file__).resolve().parents[1]
 THINK = re.compile(r"^\s*<think>.*?(?:</think>\s*|\Z)", re.DOTALL)
@@ -51,6 +51,38 @@ def parse(raw: str):
     if not isinstance(data, dict):
         return {}
     return prune_excess_depth(data)[0]
+
+
+def assemble(answered: list[dict], texts: list[str] | None = None, schema: dict | None = None) -> dict:
+    """One document's answer from its requests, in page order. A table read page by page ("rows"
+    parts) keeps every page's records, identical ones included; the other fields come from the
+    whole-document request ("rest"). Plain page batches are merged as before. With the PDF's page
+    `texts` and the `schema`, group labels of rows continued across a page break are repaired
+    (`carry_forward`, as the product does)."""
+    rows = [answer for answer in answered if answer.get("part") == "rows"]
+    if not rows and not any(answer.get("part") == "rest" for answer in answered):
+        return merge_answers([parse(answer["raw_text"]) for answer in answered]) or {}
+    rest = [answer for answer in answered if answer.get("part") == "rest"]
+    data = merge_answers([parse(answer["raw_text"]) for answer in rest]) or {}
+    tables: dict[str, list[list]] = {}
+    for answer in rows:
+        for key, value in parse(answer["raw_text"]).items():
+            if isinstance(value, list):
+                pages = tables.setdefault(key, [[] for _ in texts] if texts else [])
+                if texts and answer["batch"] < len(pages):
+                    pages[answer["batch"]] = value
+                else:
+                    pages.append(value)
+    for key, pages in tables.items():
+        if texts and schema:
+            pages = carry_forward(pages, texts, nullable_fields(schema, key))
+        data[key] = [*(data.get(key) or []), *(record for page in pages for record in page)]
+    return data
+
+
+def pdfs(case_id: str) -> list[Path]:
+    """Where a probe document's PDF may be kept locally (git-ignored)."""
+    return [ROOT / "artifacts" / "probes" / folder / f"{case_id}.pdf" for folder in ("data", "giant")]
 
 
 def evaluate(evaluator, case_id: str, data: dict, test_case, citations=None) -> dict:
@@ -92,6 +124,9 @@ def main():
     )
     parser.add_argument("--export", action="store_true", help="write the scored answers for grounding")
     parser.add_argument("--evidence", action="store_true", help="score with citations from evidence.json")
+    parser.add_argument(
+        "--carry", action="store_true", help="repair group labels across page breaks (needs the PDF locally)"
+    )
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     data_dir = ROOT / "artifacts" / "probes" / "data"
@@ -122,7 +157,12 @@ def main():
             # Never answered (stopped at the deadline, or refused): not a score of zero.
             table[case_id][variant] = {"finish": parts[0]["finish_reason"], "output_tokens": 0}
             continue
-        data = merge_answers([parse(answer["raw_text"]) for answer in answered]) or {}
+        texts = schema = None
+        if args.carry:
+            pdf = next((path for path in pdfs(case_id) if path.exists()), None)
+            texts = pdf_page_texts(pdf) if pdf else None
+            schema = json.loads((data_dir / f"{case_id}.schema.json").read_text())
+        data = assemble(answered, texts, schema)
         if args.conform:
             data = conform(data, json.loads((data_dir / f"{case_id}.schema.json").read_text()))
         key = f"{case_id}|{variant}"

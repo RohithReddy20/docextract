@@ -1,0 +1,53 @@
+{
+  "name": "g1",
+  "purpose": "Long documents whose answers are far beyond one request's output (51K-95K tokens of rows): the big table is read one page at a time (page image at 150 DPI, the page's text layer, the end of the previous page's text as context) and the other fields from one whole-document request. Qwen3.5-9B FP8. Final-v1 never finished these documents. A second method without the previous-page context runs on the smallest document.",
+  "packet": "final-v1",
+  "ids": [
+    "f7534076afef33b1",
+    "cf78a11e82647957",
+    "d6faec01f64b57db"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 131072,
+    "max_images": 170,
+    "speculative_tokens": 2
+  },
+  "limit_minutes": 25,
+  "methods": [
+    {
+      "name": "pages-150+text",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 8192,
+      "page_max_tokens": 16384,
+      "context_chars": 1500,
+      "split": {
+        "f7534076afef33b1": "measurements",
+        "cf78a11e82647957": "holdings",
+        "d6faec01f64b57db": "adverse_events"
+      }
+    },
+    {
+      "name": "pages-no-context",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 8192,
+      "page_max_tokens": 16384,
+      "context_chars": 0,
+      "split": {
+        "f7534076afef33b1": "measurements"
+      },
+      "ids": [
+        "f7534076afef33b1"
+      ]
+    }
+  ]
+}
