@@ -16,8 +16,11 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
   `--protocol oneshot` in `tools/extract_remote.py`, as in `manifests/modal/fresh-1.json`). The
   answer is typed to the schema and every printed value is then located in the parsed page text
   (native text or OCR), so each value keeps its page and box as evidence. A request too long for the
-  model's window is retried with smaller page images; one that still does not fit, or an answer cut
-  off at the output limit, falls back to the windowed pipeline (plain values per window, located by
+  model's window is retried with smaller page images. An answer cut off at the output limit while
+  writing a list of records (a table longer than one answer can hold) is completed page by page: one
+  request per page image with its text, rows kept in page order, and rows continued across a page
+  break given their group's label by code (`carry_forward`). A request that still does not fit, or an
+  answer cut off elsewhere, falls back to the windowed pipeline (plain values per window, located by
   code). Recommended model: Qwen3.5-9B (Apache-2.0; `--arm c --quantization fp8`), weights quantized
   to FP8 at load so it fits a 24 GB L4. Models run only on Kaggle and Modal; nothing is downloaded
   locally.
@@ -46,11 +49,15 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
   the full run never finished 34 → 99; long documents with small answers 62.6 → 76.5. Evidence located
   after extraction: grounded F1 56.2 vs 44.8 on 24 short documents. Probes run with
   `runtimes/modal/probe.py` (a few documents, several methods per model load, a few cents each).
-- **Not done yet:** documents whose answers run beyond about 32K tokens (14 long documents list
-  40K-500K tokens of rows) still go through the windowed pipeline, which is slow and was cut short in the
-  full run; schemas too large for one request (the 155K-token tax return) likewise; evidence for long
-  documents is weaker than the windowed pipeline's (the same value printed in many places); handwriting
-  is untested. The Modal launcher (`runtimes/modal/final_run.py`) prints its worst-case cost offline,
+- **Long tables (14 long documents list 40K-500K tokens of rows), measured on three:** read page by
+  page, a 66-page clinical listing went 50.9 → 95.7 and a 59-page fund schedule 21.1 → 71.5; on a
+  123-page check register (0.0 in the full run) all rows of the 37 pages read before stopping were
+  found, with 96.3% of fields right ([details](docs/model-trials.md)). Section headings printed pages
+  before a row are still guessed wrong at times, and such documents cost 10-40 L4 minutes each.
+- **Not done yet:** schemas too large for one request (the 155K-token tax return) still go through the
+  windowed pipeline; long tables on scanned pages and in newspaper-style columns are untested; evidence
+  for long documents is weaker than the windowed pipeline's (the same value printed in many places);
+  handwriting is untested. The Modal launcher (`runtimes/modal/final_run.py`) prints its worst-case cost offline,
   refuses a final run until the configuration is frozen, and spawns runs so a disconnect cannot stop them.
 
 A deterministic baseline that needs hand-written label/column mappings (`bindings`) is kept as a

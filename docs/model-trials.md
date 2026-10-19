@@ -161,6 +161,53 @@ are from the official `ExtractEvaluator` in a separate process.
   41.1. An unanswered document is now left empty and marked partial (before, two-state check boxes
   filled in from an empty answer scored 64.6 on one document). `manifests/trials/fresh-1.json`.
 
+- **Long tables read page by page (g1).** The 14 long documents final-v1 left unfinished expect
+  40K-500K tokens of rows (check registers, creditor lists, fund holdings, clinical listings); 11 have
+  a text layer on every page. A 66-page clinical listing (951 rows; final-v1 50.9), the table read one
+  page per request (page image at 150 DPI, the page's text layer) and the other fields from one
+  whole-document request, Qwen3.5-9B FP8: value F1 **94.0** with 5 of 66 pages unanswered at the time
+  limit; per-page row counts were exact on almost every page. Nearly all remaining errors were group
+  labels of rows continued from the previous page (a subject number printed only on the group's first
+  row): a model reading one page gives them the label printed below them. Adding the end of the
+  previous page's text as context did not fix that (90.5% vs 89.5% of rows exactly right on the 48
+  pages both variants answered) and added duplicated rows. A repair in code (`carry_forward`: a row
+  whose group label is first printed below its own line takes the previous page's last label) brings
+  the pages both answered to 99.3% of rows exactly right and the document to **95.7**; on the answer
+  keys of 7 long documents (about 45K records split into pages) it changes nothing. Engine findings:
+  32 sequences at once outgrew the KV cache, and vLLM's recompute-on-preemption left some page
+  requests unfinished after 17 minutes; queuing all 291 requests at once crashed the worker (each
+  holds its decoded page images); JSON-object answers were pretty-printed in every probe so far
+  because vLLM's xgrammar backend reads the no-whitespace flag from the engine, not the request; the
+  L4 read about 1,000-1,500 prompt tokens/s for page-image requests. The text layer now comes in the
+  PDF's own order, as in every probe (regrouping lines across the page mixed the columns of
+  multi-column listings; on 7 of 10 long documents fewer than 60% of lines were the same in both orders).
+  `manifests/probes/g1.json`.
+
+- **JSON without whitespace (g2, rejected).** Setting the no-whitespace flag for the whole engine (the
+  only place xgrammar reads it) emptied the answers: 52 of 53 page answers on a fund-holdings document
+  came back as `{}` or nearly so, including all 19 pages that list holdings, since the model's first
+  token after `{` is a newline and, with whitespace forbidden, it closed the object instead; requests
+  also queued for grammar compilation and generation fell to about 5 tokens/s. Stopped after 8 minutes;
+  answers stay pretty-printed. `manifests/probes/g2.json`.
+
+- **Fund holdings read page by page (g3).** A 59-page fund report whose schedule lists 588 holdings
+  under asset-class, industry and issuer headings (final-v1 21.1): value F1 **71.5**, every page
+  answered in 9 minutes of generation, 590 rows found for 588, document-level fields all right. What
+  remains is reading, not completeness: the model gives a security's name without the rate, coupon
+  and maturity printed on the same row (562 rows), and on pages that continue a section it cannot see
+  the asset-class heading printed pages earlier, so it leaves it empty or puts an industry heading
+  there (511 rows). The label repair cannot settle which heading level a value belongs to, so it
+  changed one row. With 24 sequences the KV cache was the limit (96-100% used with about 17 answers
+  running; 220-470 output tokens/s). `manifests/probes/g3.json`.
+
+- **Check register read page by page (g4, stopped early).** A 123-page check register, 3,308 rows of
+  12 fields (final-v1 0.0). Pretty-printed answers ran to about 4,500 tokens per page, so the whole
+  document needs about 40 L4 minutes at the measured rate; stopped after 37 pages to save credit. On
+  those pages every one of the 986 rows was found, and 96.3% of their fields match the answer key; most
+  of the rest is one convention: on a check's continuation lines the key leaves the type code empty
+  (it is not printed there) while the model carries it down like the fields whose descriptions say so.
+  `manifests/probes/g4.json`.
+
 ## Native value generation, first smoke
 
 Frozen source archive: `bf9ba39901f69ae2eea477fa82464874d6ab10b7d86976a5e696b0ebc6017dce`.
