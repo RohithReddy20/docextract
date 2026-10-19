@@ -1,0 +1,46 @@
+tools/score_probe.py
+  s_eaf722cf290d93::t_83131b76084ee1 32,56,59-61,67,71-79,83-87,127-129,160-165
+  s_eaf722cf290d93::t_e8638ebdb76d8d 57-58,62-66,68-70,80-82
+manifests/probes/g1.json
+  s_eaf722cf290d93::t_f0a60a6a4403b2 1-2,4-33,51-53
+  s_eaf722cf290d93::t_b225573a29aa9f 3,34-50
+manifests/probes/g4.json
+  s_eaf722cf290d93::t_ca454ed6fb2731 1-34
+tools/probe_jobs.py
+  s_eaf722cf290d93::t_09be6e4444bfe9 70-71
+  s_eaf722cf290d93::t_cf39387b4f7beb 69
+  s_eaf722cf290d93::t_12dff4a0baff87 37-50,59-68,72-83,86-91,95-96
+  s_eaf722cf290d93::t_9eaa28b3cc55fe 92
+runtimes/modal/probe.py
+  s_eaf722cf290d93::t_64c9b153242d0a 308-309
+  s_eaf722cf290d93::t_7f57649c3ef64b 236
+  s_eaf722cf290d93::t_61829f7017d7e0 28,124
+  s_eaf722cf290d93::t_e709e9b4f66266 270,290
+  s_eaf722cf290d93::t_392f5ba183b2e1 166-173
+  s_eaf722cf290d93::t_2bd656f6b7ba9e 96-123,206
+  s_eaf722cf290d93::t_15ea766cf0f90f 125,130-131,133,340,342
+  s_eaf722cf290d93::t_9eaa28b3cc55fe 29-30,137,159-161,187,224-228,280-283,286,312-317
+  s_eaf722cf290d93::t_8b28b02a3bc4f5 188,238,240-261,263-269,271-277,279,305-306
+manifests/probes/g2.json
+  s_eaf722cf290d93::t_cf39387b4f7beb 1-2,4-6,8-12,14,17,19-26,28,31-32,34-37
+  s_eaf722cf290d93::t_cb73aabc67ac9d 3
+  s_eaf722cf290d93::t_5d841e5f587240 7,13,15-16,18,27,29-30,33
+manifests/probes/g3.json
+  s_eaf722cf290d93::t_b6e45d4ba48653 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ecd3c216d8bbbf22db9114ddef60c8909666b605",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
