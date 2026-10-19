@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from collections import deque
 
 import pytest
 
@@ -108,6 +109,7 @@ def test_vllm_streaming_maps_suffixed_request_ids_and_refuses_oversized_windows(
         def add_request(self, request_id, prompt, params):
             internal = f"{request_id}-1a2b3c4d"
             self.running.append((internal, prompt["prompt_token_ids"]))
+            self.most = max(getattr(self, "most", 0), len(self.running))
             return internal
 
         def has_unfinished_requests(self):
@@ -125,15 +127,18 @@ def test_vllm_streaming_maps_suffixed_request_ids_and_refuses_oversized_windows(
     engine.llm = SimpleNamespace(llm_engine=FakeEngine())
     engine.max_model_len, engine.max_new_tokens = 10, 4
     engine.ready, engine.requests, engine.telemetry = [], {}, []
+    # One request in the engine at a time: the rest wait in the backlog (page images use memory).
+    engine.backlog, engine.active, engine.in_flight = deque(), set(), 1
     engine.params = lambda task: None
-    lengths = {"short": 3, "long": 8}
+    lengths = {"short": 3, "long": 8, "other": 2}
     engine.prompt_ids = lambda task: list(range(lengths[task.task_id]))
     tasks = [CitedTask(task_id=name, original_schema={"type": "object"}, units=()) for name in lengths]
     answers = engine.generate_batch(tasks)
-    assert [answer.finish_reason for answer in answers] == ["stop", "input_limit"]
+    assert [answer.finish_reason for answer in answers] == ["stop", "input_limit", "stop"]
     assert answers[0].input_tokens == 3 and answers[0].output_tokens == 3
-    assert answers[1].input_tokens == 8 and engine.llm.llm_engine.steps == 1
-    assert engine.requests == {} and [row["task_id"] for row in engine.telemetry] == ["short"]
+    assert answers[1].input_tokens == 8 and engine.llm.llm_engine.steps == 2
+    assert engine.llm.llm_engine.most == 1 and not engine.backlog and not engine.active
+    assert engine.requests == {} and [row["task_id"] for row in engine.telemetry] == ["short", "other"]
 
 
 def test_prompt_schema_drops_only_redundant_text():
@@ -195,6 +200,7 @@ def test_vllm_sends_page_images_with_a_text_prompt(tmp_path):
     engine.tokenizer, engine.arm, engine.protocol = Tokenizer(), "a", "cited"
     engine.max_model_len, engine.max_new_tokens = 1000, 100
     engine.ready, engine.requests, engine.telemetry = [], {}, []
+    engine.backlog, engine.active, engine.in_flight = deque(), set(), 8
     engine.params = lambda task: None
     task = CitedTask(
         task_id="t1", original_schema={"type": "object"}, units=(), page_images=(str(image_path),)

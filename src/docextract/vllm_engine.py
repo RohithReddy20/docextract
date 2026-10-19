@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import os
 import time
+from collections import deque
 from pathlib import Path
 
 from docextract.cited import CitedTask, cited_output_schema
@@ -87,6 +88,11 @@ class VllmCitedEngine:
         self.sampling = SamplingParams(temperature=0.0, max_tokens=max_new_tokens)
         self.ready: list[tuple[str, GenerationResult]] = []
         self.requests: dict[str, tuple[str, float]] = {}
+        # Windows enter the engine a few at a time: each holds its preprocessed page images in host
+        # memory until it finishes, and hundreds of page requests at once exhaust it.
+        self.backlog: deque[CitedTask] = deque()
+        self.active: set[str] = set()
+        self.in_flight = 2 * max_num_seqs
         self.constrained = constrained
         self.arm, self.max_model_len, self.max_new_tokens = arm, max_model_len, max_new_tokens
         self.identity = {
@@ -129,6 +135,10 @@ class VllmCitedEngine:
         )
         return [int(token) for token in encoded["input_ids"]]
 
+    def limit(self, task: CitedTask) -> int:
+        """Output tokens allowed for one request: the engine's limit, or the task's lower one."""
+        return min(task.max_tokens, self.max_new_tokens) if task.max_tokens else self.max_new_tokens
+
     def params(self, task: CitedTask):
         from vllm import SamplingParams
         from vllm.sampling_params import RequestOutputKind, StructuredOutputsParams
@@ -138,11 +148,12 @@ class VllmCitedEngine:
             # One grammar per request: each window may carry a different schema field group.
             structured = StructuredOutputsParams(json=cited_output_schema(task.prompt_schema))
         elif task.protocol == "oneshot":
-            # Any JSON object, without free whitespace (no runaway blank output).
+            # Any JSON object. (The whitespace flag here is ignored by vLLM's xgrammar backend, which
+            # reads it from the engine configuration; answers come pretty-printed.)
             structured = StructuredOutputsParams(json_object=True, disable_any_whitespace=True)
         return SamplingParams(
             temperature=0.0,
-            max_tokens=self.max_new_tokens,
+            max_tokens=self.limit(task),
             structured_outputs=structured,
             output_kind=RequestOutputKind.FINAL_ONLY,
         )
@@ -176,14 +187,19 @@ class VllmCitedEngine:
         return {"prompt": text, "multi_modal_data": {"image": images}}, estimate
 
     def submit(self, tasks: list[CitedTask]) -> None:
-        """Queue windows in the running engine; continuous batching admits them in order."""
-        for task in tasks:
+        """Queue windows; continuous batching admits them in order as earlier ones finish."""
+        self.backlog.extend(tasks)
+        self._admit()
+
+    def _admit(self) -> None:
+        while self.backlog and len(self.active) < self.in_flight:
+            task = self.backlog.popleft()
             if task.page_images:
                 prompt, length = self.multimodal_prompt(task)
             else:
                 ids = self.prompt_ids(task)
                 prompt, length = {"prompt_token_ids": ids}, len(ids)
-            if length + self.max_new_tokens > self.max_model_len:
+            if length + self.limit(task) > self.max_model_len:
                 refusal = GenerationResult(raw_text="", finish_reason="input_limit", input_tokens=length)
                 self.ready.append((task.task_id, refusal))
                 continue
@@ -193,12 +209,14 @@ class VllmCitedEngine:
             self.requests[task.task_id] = (task.task_id, submitted)
             if isinstance(internal, str):
                 self.requests[internal] = (task.task_id, submitted)
+            self.active.add(task.task_id)
 
     def busy(self) -> bool:
-        return bool(self.ready) or self.llm.llm_engine.has_unfinished_requests()
+        return bool(self.ready or self.backlog) or self.llm.llm_engine.has_unfinished_requests()
 
     def poll(self) -> list[tuple[str, GenerationResult]]:
         """Run one engine step; return the windows that finished in it, by task id."""
+        self._admit()
         answers, self.ready = self.ready, []
         if answers or not self.llm.llm_engine.has_unfinished_requests():
             return answers
@@ -211,6 +229,7 @@ class VllmCitedEngine:
             task_id, submitted = self.requests[key]
             for alias in [name for name, (owner, _) in self.requests.items() if owner == task_id]:
                 del self.requests[alias]
+            self.active.discard(task_id)
             generation = self.result(output)
             answers.append((task_id, generation))
             self.telemetry.append(
