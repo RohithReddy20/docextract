@@ -1,5 +1,7 @@
 """Merging answers to page batches of one document."""
 
+import json
+
 from docextract.oneshot import merge_answers
 
 
@@ -222,3 +224,203 @@ def test_a_document_without_a_stored_answer_stays_empty_and_partial(tmp_path):
     result = extract_oneshot(_invoice_pdf(tmp_path), INVOICE, workspace=tmp_path / "run", backend=model)
     assert result.data == {} and result.completion.status == "partial"
     assert any("not answered" in item.reason for item in result.unresolved)
+
+
+def _ledger_pdf(tmp_path):
+    from reportlab.pdfgen.canvas import Canvas
+
+    path = tmp_path / "ledger.pdf"
+    canvas = Canvas(str(path), invariant=1)
+    canvas.drawString(48, 760, "Ledger")
+    canvas.drawString(48, 730, "A1 10")
+    canvas.drawString(48, 710, "A2 20")
+    canvas.showPage()
+    canvas.drawString(48, 730, "B1 30")
+    canvas.showPage()
+    canvas.drawString(48, 730, "Total 60")
+    canvas.showPage()
+    canvas.save()
+    return path
+
+
+LEDGER = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "rows": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/Row"},
+        },
+        "total": {"type": "number"},
+    },
+    "$defs": {
+        "Row": {"type": "object", "properties": {"name": {"type": "string"}, "amount": {"type": "number"}}}
+    },
+}
+CUT_OFF = '{"title":"Ledger","rows":[{"name":"A1","amount":10},{"name":"A2","amou'
+
+
+def test_a_table_cut_off_at_the_output_limit_is_read_page_by_page(tmp_path):
+    from docextract.oneshot import extract_oneshot
+    from docextract.remote import cited_messages
+
+    model = OneShotModel(
+        [
+            (CUT_OFF, "length"),
+            ('{"rows":[{"name":"A1","amount":10},{"name":"A2","amount":20}]}', "stop"),
+            ('{"rows":[{"name":"B1","amount":30}]}', "stop"),
+            ('{"rows":[]}', "stop"),
+            ('{"total":60}', "stop"),
+        ]
+    )
+    result = extract_oneshot(
+        _ledger_pdf(tmp_path), LEDGER, workspace=tmp_path / "run", backend=model, fallback=lambda: "windowed"
+    )
+    assert result.data == {
+        "title": "Ledger",
+        "rows": [{"name": "A1", "amount": 10}, {"name": "A2", "amount": 20}, {"name": "B1", "amount": 30}],
+        "total": 60,
+    }
+    document, *pages, rest = model.tasks
+    assert [task.first_page for task in pages] == [1, 2, 3] and {task.page_count for task in pages} == {3}
+    assert all(
+        len(task.page_images) == 1 and list(task.original_schema["properties"]) == ["rows"] for task in pages
+    )
+    assert "B1" in pages[1].page_texts[0] and "A2" not in pages[1].page_texts[0]
+    assert list(rest.original_schema["properties"]) == ["total"] and len(rest.page_images) == 3
+    assert rest.max_tokens == 2048 and document.max_tokens is None  # a few values, not a table
+    text = cited_messages(pages[1], "c", "oneshot")[0][1]["content"][-1]["text"]
+    assert "The image is page 2 of a 3-page document" in text and "--- page 2 ---" in text
+    assert not result.unresolved and result.usage.input_tokens == 500 and result.usage.committed_tasks == 5
+    evidence = {field.pointer: field for field in result.field_evidence}
+    assert evidence["/rows/2/name"].source_lexeme == "B1" and evidence["/total"].source_lexeme == "60"
+
+
+def test_the_cut_off_table_is_the_list_being_written():
+    from docextract.oneshot import cut_off_table, parse_answer
+
+    assert cut_off_table(parse_answer(CUT_OFF), LEDGER) == "rows"
+    assert cut_off_table(parse_answer('{"title":"Ledg'), LEDGER) is None  # not inside a table
+    assert cut_off_table({"title": "x"}, LEDGER) is None
+
+
+def test_a_batch_run_queues_every_page_of_a_cut_off_table_at_once(tmp_path):
+    from docextract.cited import Pending
+    from docextract.models import GenerationResult
+    from docextract.oneshot import extract_oneshot
+
+    class Store:
+        identity = {"backend": "store", "version": "1"}
+
+        def __init__(self):
+            self.saved, self.queued = {}, {}
+
+        def generate_cited(self, task):
+            if task.task_id in self.saved:
+                return self.saved[task.task_id]
+            self.queued[task.task_id] = task
+            raise Pending([task.task_id])
+
+    def answer(task):
+        if task.page_count:
+            # Pages 2 and 3 print identical rows; both are kept.
+            row = {"name": "P1", "amount": 1} if task.first_page == 1 else {"name": "Same", "amount": 2}
+            raw = json.dumps({"rows": [row]})
+            return GenerationResult(raw_text=raw, finish_reason="stop")
+        if list(task.original_schema["properties"]) == ["total"]:
+            return GenerationResult(raw_text='{"total":6}', finish_reason="stop")
+        return GenerationResult(raw_text=CUT_OFF, finish_reason="length")
+
+    store, pdf = Store(), _ledger_pdf(tmp_path)
+    rounds = []
+    while True:
+        store.queued.clear()
+        try:
+            result = extract_oneshot(pdf, LEDGER, workspace=tmp_path / "run", backend=store)
+            break
+        except Pending as waiting:
+            rounds.append(len(waiting.task_ids))
+            store.saved.update({task_id: answer(task) for task_id, task in store.queued.items()})
+    assert rounds == [1, 4]  # the document, then its three pages and the remaining field together
+    assert [row["name"] for row in result.data["rows"]] == ["P1", "Same", "Same"] and result.data[
+        "total"
+    ] == 6
+
+
+def test_rows_continued_across_a_page_break_keep_their_group_label():
+    from docextract.oneshot import carry_forward
+
+    texts = [
+        "Listing\nR1003 Placebo Week 0 2009-02-01 08:00\nWeek 6 2009-03-12 08:30\nWeek 10 2009-04-20 08:40\n"
+        "R1004 Active Week 0 2009-03-01 08:10\nWeek 6 2009-04-12 09:00\n",
+        "Listing\nWeek 10 2009-05-20 10:30\nWeek 16 2009-07-01 11:00\nR1005 Placebo Week 0 2009-03-10 09:47\n"
+        "Week 6 2009-04-20 11:00\n",
+    ]
+
+    def row(subject, product, week, date, time):
+        return {"subject": subject, "product": product, "week": week, "date": date, "time": time}
+
+    pages = [
+        [
+            row("R1003", "Placebo", "Week 0", "2009-02-01", "08:00"),
+            row("R1003", "Placebo", "Week 6", "2009-03-12", "08:30"),
+            row("R1003", "Placebo", "Week 10", "2009-04-20", "08:40"),
+            row("R1004", "Active", "Week 0", "2009-03-01", "08:10"),
+            row("R1004", "Active", "Week 6", "2009-04-12", "09:00"),
+        ],
+        [
+            # Read alone, the continued rows took the label printed below them, or none.
+            row("R1005", "Placebo", "Week 10", "2009-05-20", "10:30"),
+            row(None, "Placebo", "Week 16", "2009-07-01", "11:00"),
+            row("R1005", "Placebo", "Week 0", "2009-03-10", "09:47"),
+            row("R1005", "Placebo", "Week 6", "2009-04-20", "11:00"),
+        ],
+    ]
+    fixed = carry_forward(pages, texts)
+    assert [(r["subject"], r["product"]) for r in fixed[1]] == [
+        ("R1004", "Active"),
+        ("R1004", "Active"),
+        ("R1005", "Placebo"),
+        ("R1005", "Placebo"),
+    ]
+    assert carry_forward(fixed, texts) == fixed  # correct labels are left alone
+    assert pages[1][0]["subject"] == "R1005"  # the input is not modified
+    # A label the schema allows to be null is filled in only while no label is printed above the row.
+    nullable = frozenset({"subject"})
+    assert carry_forward(pages, texts, nullable)[1][1]["subject"] == "R1004"
+    later = [
+        row("R1006", "Active", "Week 0", "2009-03-12", "07:00"),
+        row(None, "Active", "Week 6", "2009-04-22", "07:30"),
+    ]
+    texts.append("Listing\nR1006 Active Week 0 2009-03-12 07:00\nWeek 6 2009-04-22 07:30\n")
+    assert carry_forward([*pages, later], texts, nullable)[2][1]["subject"] is None
+
+
+def test_a_page_cut_off_at_its_text_sized_cap_is_asked_again_uncapped(tmp_path):
+    from reportlab.pdfgen.canvas import Canvas
+
+    from docextract.oneshot import extract_oneshot
+
+    path = tmp_path / "list.pdf"
+    canvas = Canvas(str(path), invariant=1)
+    for line in range(12):
+        canvas.drawString(48, 760 - 20 * line, f"Item {line:02d} described at some length for the listing")
+    canvas.showPage()
+    canvas.save()
+    schema = {
+        "type": "object",
+        "properties": {"rows": LEDGER["properties"]["rows"]},
+        "$defs": LEDGER["$defs"],
+    }
+    model = OneShotModel(
+        [
+            ('{"rows":[{"name":"Item 00"', "length"),
+            ('{"rows":[{"name":"Item 00","amount":1},{"name":"It', "length"),
+            ('{"rows":[{"name":"Item 00","amount":1},{"name":"Item 01","amount":2}]}', "stop"),
+        ]
+    )
+    result = extract_oneshot(path, schema, workspace=tmp_path / "run", backend=model)
+    capped, uncapped = model.tasks[1:]
+    assert capped.max_tokens and capped.max_tokens >= 1024 and uncapped.max_tokens is None
+    assert [row["name"] for row in result.data["rows"]] == ["Item 00", "Item 01"]
+    assert not result.unresolved and result.usage.committed_tasks == 3

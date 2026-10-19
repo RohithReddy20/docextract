@@ -4,8 +4,9 @@ The model sees every page as an image, the PDF's own text layer and the full sch
 one JSON object (`extract_oneshot`). The answer is typed to the schema (`conform`) and each printed value
 is then located in the parsed page text (`locate_evidence`), so values keep field-level evidence without
 the model having to cite anything. On ExtractBench samples this beat the windowed cited pipeline on
-short, medium and long documents (docs/model-trials.md); the windowed pipeline remains for schemas or
-answers too large for one request.
+short, medium and long documents (docs/model-trials.md). A table too long for one answer is read again
+one page at a time, and group labels of rows continued across a page break are repaired
+(`carry_forward`); the windowed pipeline remains for schemas too large for one request.
 
 Answers to batches of consecutive pages can be merged in page order (`merge_answers`): a scalar takes
 the first value any batch found, objects merge key by key, and lists are concatenated, except that a
@@ -67,8 +68,15 @@ def prepare_schema(schema: dict) -> dict:
     return close(out)
 
 
-def user_text(schema: dict, page_texts: list[str] | None = None) -> str:
-    """The request text: the prepared schema, the instructions and, when given, the PDF's text layer."""
+def user_text(
+    schema: dict,
+    page_texts: list[str] | None = None,
+    *,
+    first_page: int = 1,
+    page_count: int | None = None,
+) -> str:
+    """The request text: the prepared schema, the instructions and, when given, the PDF's text layer.
+    A request for one page of a longer document (`page_count`) says which page it shows."""
     text = (
         "Extract every field from the attached document page image(s) according to the JSON schema below.\n\n"
         "JSON schema:\n"
@@ -76,10 +84,55 @@ def user_text(schema: dict, page_texts: list[str] | None = None) -> str:
         "Return only one valid JSON object matching the schema. Do not wrap it in markdown fences.\n\n"
         f"{USER_INSTRUCTION}"
     )
+    if page_count:
+        text += (
+            f"\n\nThe image is page {first_page} of a {page_count}-page document. Extract what this page "
+            "shows; use null (or an empty list) for anything not on it."
+        )
     if page_texts:
-        layer = "\n\n".join(f"--- page {i + 1} ---\n{t.strip()}" for i, t in enumerate(page_texts))
+        layer = "\n\n".join(f"--- page {first_page + i} ---\n{t.strip()}" for i, t in enumerate(page_texts))
         text += f"\n\nText layer of the document (may be incomplete; trust the images):\n{layer}"
     return text
+
+
+def split_schema(schema: dict, names: list[str]) -> dict:
+    """The schema restricted to the top-level properties `names` (definitions kept)."""
+    return {
+        **schema,
+        "properties": {key: value for key, value in schema["properties"].items() if key in names},
+        "required": [key for key in schema.get("required", []) if key in names],
+    }
+
+
+def cut_off_table(partial: dict, schema: dict, raw: str = "") -> str | None:
+    """The top-level list of records an answer was writing when the output limit cut it off: the last
+    key of the salvaged answer (or, when nothing was salvaged, the list the raw answer opens), when the
+    schema declares it an array of objects."""
+    opened = re.match(r'\s*\{\s*"([^"]+)"\s*:\s*\[', THINK.sub("", raw, count=1))
+    if not partial and not opened:
+        return None
+    name = list(partial)[-1] if partial else opened.group(1)
+    node = (prepare_schema(schema).get("properties") or {}).get(name)
+    if not isinstance(node, dict) or "array" not in _types(node):
+        return None
+    items = _resolve(node.get("items") or {}, schema)
+    return name if "object" in _types(items) or "properties" in items else None
+
+
+def _types(node: dict) -> set[str]:
+    kind = node.get("type")
+    return set(kind) if isinstance(kind, list) else {kind} if kind else set()
+
+
+def _resolve(node: dict, schema: dict) -> dict:
+    """A local `$ref` ("#/$defs/Name") followed to its definition."""
+    reference = node.get("$ref")
+    if not isinstance(reference, str) or not reference.startswith("#/"):
+        return node
+    target: Any = schema
+    for part in reference[2:].split("/"):
+        target = target.get(part, {}) if isinstance(target, dict) else {}
+    return target if isinstance(target, dict) else {}
 
 
 def page_dpi(pages: int) -> int:
@@ -137,6 +190,145 @@ def parse_answer(raw: str) -> dict:
 
 def _empty(value: Any) -> bool:
     return value is None or value == [] or value == {}
+
+
+def _printed(value: Any) -> str | None:
+    """A scalar value as it would be printed, when long enough to recognize in a line of text."""
+    if value is None or isinstance(value, (bool, dict, list)):
+        return None
+    text = str(value).strip()
+    return text if len(text) >= 2 else None
+
+
+def _group_fields(pages: list[list], texts: list[str]) -> set[str]:
+    """Fields naming a group of consecutive records, such as an identifier printed once per group or a
+    section heading: the same text on consecutive records (at least three times, on a fifth of the
+    pairs), printed in the document for most of its values, and printed less often on a page than
+    records use it (a value read from a code, or printed on every row, is not a group label)."""
+    records = [record for page in pages for record in page if isinstance(record, dict)]
+    pairs: dict[str, list[bool]] = {}
+    for before, after in zip(records, records[1:], strict=False):
+        for key, value in after.items():
+            if isinstance(value, str) and value.strip() and isinstance(before.get(key), str):
+                pairs.setdefault(key, []).append(value == before[key])
+    candidates = {key for key, same in pairs.items() if sum(same) >= 3 and sum(same) >= len(same) / 5}
+    everything = "\n".join(texts)
+    group = set()
+    for key in candidates:
+        values = {text for record in records if (text := _printed(record.get(key)))}
+        if not values or sum(1 for text in values if text in everything) < 0.8 * len(values):
+            continue
+        used = printed = 0
+        for page, text in zip(pages, texts, strict=False):
+            counts: dict[str, int] = {}
+            for record in page:
+                if isinstance(record, dict) and (value := _printed(record.get(key))):
+                    counts[value] = counts.get(value, 0) + 1
+            lines = text.splitlines()
+            for value, count in counts.items():
+                used += count
+                printed += sum(1 for line in lines if value in line)
+        if used and printed < 0.75 * used:
+            group.add(key)
+    return group
+
+
+def _forms(value: Any) -> tuple[str, ...]:
+    """Ways a value may be printed: as written, and numbers also with thousands separators."""
+    text = _printed(value)
+    if text is None:
+        return ()
+    if isinstance(value, int):
+        return (text, f"{value:,}")
+    if isinstance(value, float):
+        return (text, f"{value:,.2f}", f"{value:.2f}")
+    return (text,)
+
+
+def _record_line(record: dict, lines: list[str], start: int, group: set[str]) -> int | None:
+    """The line (from `start`) holding most of a record's own printed values: None unless it holds at
+    least two of them and half (a record printed over several lines has no line of its own)."""
+    values = [forms for key, value in record.items() if key not in group and (forms := _forms(value))]
+    best, most = None, max(1, (len(values) - 1) // 2)
+    for index in range(start, len(lines)):
+        count = sum(1 for forms in values if any(form in lines[index] for form in forms))
+        if count > most:
+            best, most = index, count
+    return best
+
+
+def nullable_fields(schema: dict, table: str) -> frozenset[str]:
+    """Fields of a top-level list's records that may be null (typed null, or not required)."""
+    prepared = prepare_schema(schema)
+    items = _resolve((prepared.get("properties") or {}).get(table, {}).get("items") or {}, prepared)
+    required = set(items.get("required") or [])
+    return frozenset(
+        key
+        for key, node in (items.get("properties") or {}).items()
+        if key not in required or "null" in _types(_resolve(node, prepared))
+    )
+
+
+def carry_forward(pages: list[list], texts: list[str], nullable: frozenset[str] = frozenset()) -> list[list]:
+    """Records of a table read page by page, with group labels of continued rows repaired.
+
+    Rows at the top of a page can continue a group begun on an earlier page (a subject's remaining
+    visits, a check's further lines, a section running on). A model reading only that page labels
+    them with the group printed below them, or leaves the label empty. A group's label is printed on
+    its first row, so a row whose label is first printed below its own lines (those up to the next
+    record) cannot belong to it: such a row takes the label of the previous page's last record. So
+    does a row left unlabelled, when the schema does not allow the label to be null or when no group
+    label of any kind is printed above it on its page (fields in `nullable` may be null). Repair stops
+    for a field at the first row whose label is printed on its own lines or above them.
+    """
+    group = _group_fields(pages, texts)
+    if not group:
+        return pages
+    labels = {
+        text
+        for page in pages
+        for record in page
+        if isinstance(record, dict)
+        for key in group
+        if (text := _printed(record.get(key)))
+    }
+    previous = None
+    repaired = []
+    for index, page in enumerate(pages):
+        page = [dict(record) if isinstance(record, dict) else record for record in page]
+        if previous is not None and index < len(texts):
+            lines = texts[index].splitlines()
+            # The first line of this page that prints a group label (a heading, a group's first row).
+            heading = next(
+                (i for i, other in enumerate(lines) if any(label in other for label in labels)), None
+            )
+            pending = {key for key in group if previous.get(key) not in (None, "")}
+            records = [record for record in page if isinstance(record, dict)]
+            line = _record_line(records[0], lines, 0, group) if records else None
+            for position, record in enumerate(records):
+                if not pending or line is None:
+                    break
+                following = (
+                    _record_line(records[position + 1], lines, line, group)
+                    if position + 1 < len(records)
+                    else None
+                )
+                end = max(following if following is not None else len(lines), line + 1)
+                for key in sorted(pending):
+                    value, text = record.get(key), _printed(record.get(key))
+                    first = next((i for i, other in enumerate(lines) if text and text in other), None)
+                    if first is not None and first < end:
+                        pending.discard(key)  # labelled on this record's lines or by a heading above
+                    elif first is not None:
+                        record[key] = previous[key]  # took a label printed below it
+                    elif value is None and (key not in nullable or heading is None or heading > line):
+                        # Unlabelled, and no group label is printed above it on this page: the group
+                        # (a section, a subject) continues from the previous page.
+                        record[key] = previous[key]
+                line = following
+        repaired.append(page)
+        previous = next((record for record in reversed(page) if isinstance(record, dict)), previous)
+    return repaired
 
 
 def merge_answers(parts: list[Any]) -> Any:
@@ -283,6 +475,56 @@ def field_path(pointer: str, data: Any) -> str:
     return path
 
 
+# Characters after the previous located value searched first for the next one.
+NEAR = 4000
+
+
+class _Occurrences:
+    """Every printed occurrence of a value in one document text, in text order, found once per
+    distinct value; numbers come from a single pass over the text instead of one pass per value."""
+
+    def __init__(self, text: str):
+        self.text = text
+        self.numbers: dict[Any, list[tuple[int, int, str]]] | None = None
+        self.cache: dict[tuple, tuple[list, list[int]]] = {}
+
+    def _number_index(self) -> dict[Any, list[tuple[int, int, str]]]:
+        from docextract.cited import NUMBER, parse_number
+
+        index: dict[Any, list[tuple[int, int, str]]] = {}
+        for match in NUMBER.finditer(self.text):
+            lexeme = match.group().strip()
+            try:
+                printed = parse_number(lexeme)
+            except ValueError:
+                continue
+            index.setdefault(printed, []).append((match.start(), match.end(), lexeme))
+            if lexeme.endswith("%"):  # a percentage may stand for its fraction
+                index.setdefault(round(printed / 100, 12), []).append((match.start(), match.end(), lexeme))
+        return index
+
+    def get(self, value: Any, kind: str) -> tuple[list, list[int]]:
+        """(occurrences as (start, end, transform), their start offsets)."""
+        from docextract.cited import find_all
+
+        key = (kind, type(value).__name__, value)
+        if key not in self.cache:
+            if kind in ("integer", "number") and isinstance(value, (int, float)):
+                if self.numbers is None:
+                    self.numbers = self._number_index()
+                hits = self.numbers.get(value, []) + (
+                    self.numbers.get(round(value, 12), []) if round(value, 12) != value else []
+                )
+                found = sorted(
+                    (start, end, "verbatim" if lexeme == str(value) else "number_normalized")
+                    for start, end, lexeme in hits
+                )
+            else:
+                found = list(find_all(value, kind, self.text))
+            self.cache[key] = (found, [start for start, _, _ in found])
+        return self.cache[key]
+
+
 def locate_values(data: Any, schema: dict, snapshot):
     """Where each printed value of an answer appears in the parsed page text (native text or OCR):
     (pointer, value, atom ids, printed text, transform) per located value, in answer order.
@@ -291,6 +533,8 @@ def locate_values(data: Any, schema: dict, snapshot):
     own lines; a value printed nowhere (or a check box) is not yielded rather than guessed. (Preferring
     the occurrence printed after the field's label was tried and located fewer values correctly.)
     """
+    import bisect
+
     from docextract.cited import _atoms, _virtual, find_all
     from docextract.interpretation import evidence_units
 
@@ -298,14 +542,23 @@ def locate_values(data: Any, schema: dict, snapshot):
     if not units:
         return
     text, offsets, _ = _virtual(units)
+    every = _Occurrences(text)
     cursor = 0
     for pointer, value, kind in _leaves(data, schema):
         if value is None or isinstance(value, bool) or (isinstance(value, str) and not value.strip()):
             continue
-        occurrences = list(find_all(value, kind, text))
-        if not occurrences:
-            continue
-        start, end, transform = next((o for o in occurrences if o[0] >= cursor), occurrences[0])
+        numeric = kind in ("integer", "number") and isinstance(value, (int, float))
+        # The next value is usually printed just after the previous one (a table's rows in order), so
+        # the text right after the cursor is searched before the whole document: long tables stay fast.
+        near = None if numeric else next(find_all(value, kind, text[cursor : cursor + NEAR]), None)
+        if near is not None:
+            start, end, transform = near[0] + cursor, near[1] + cursor, near[2]
+        else:
+            occurrences, starts = every.get(value, kind)
+            if not occurrences:
+                continue
+            position = bisect.bisect_left(starts, cursor)
+            start, end, transform = occurrences[position if position < len(occurrences) else 0]
         cursor = start
         yield pointer, value, _atoms(offsets, start, end), text[start:end], transform
 
@@ -359,18 +612,185 @@ def render_page_images(document: Path, directory: Path, dpi: int) -> list[Path]:
     return paths
 
 
-def native_page_texts(snapshot) -> list[str]:
-    """Each page's own PDF text, one line per text line; recognized (OCR) text is left out, since the
-    model reads scanned pages better from the image than from a copy with recognition errors."""
-    texts = []
-    for page in snapshot.pages:
-        lines = [
-            atom.text
-            for atom in page.atoms
-            if atom.kind == "line" and atom.source_channel == "native_pdf" and atom.text.strip()
-        ]
-        texts.append("\n".join(lines))
-    return texts
+def pdf_page_texts(document: Path) -> list[str]:
+    """Each page's own PDF text in the order the PDF stores it (PDFium's text page), which keeps the
+    columns of a multi-column page apart; text recognized by OCR and form-field values are not
+    included, since the model reads those from the page image. Measured on ExtractBench samples
+    (docs/model-trials.md) with this text; text regrouped into lines across the page width mixes the
+    columns of newspaper-style listings and two-column layouts."""
+    from contextlib import closing
+
+    import pypdfium2 as pdfium
+
+    with closing(pdfium.PdfDocument(str(document))) as pdf:
+        texts = []
+        for index in range(len(pdf)):
+            with closing(pdf[index].get_textpage()) as text:
+                texts.append(text.get_text_bounded())
+        return texts
+
+
+# Output allowed for one page's records: about two tokens per character of the page's own text were
+# measured (JSON repeats every field name), so twice that leaves room and ends a runaway answer early.
+PAGE_TOKENS_PER_CHAR = 4
+
+
+def page_output_cap(text: str) -> int | None:
+    """The output limit of a page request; None (the engine's) for a page with little or no text."""
+    chars = len(text.strip())
+    return max(1024, PAGE_TOKENS_PER_CHAR * chars) if chars >= 200 else None
+
+
+def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens=None):
+    """One request for the whole document (output limited to `max_tokens` when given). A request
+    too long for the model's window is retried with smaller images (two thirds of the resolution,
+    down to 72 DPI)."""
+    import hashlib
+
+    from docextract.cited import CitedTask
+    from docextract.contracts import digest
+
+    while True:
+        images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
+        identity = {
+            "protocol": "oneshot/1",
+            "schema": schema,
+            "backend": backend.identity,
+            "images": [hashlib.sha256(path.read_bytes()).hexdigest() for path in images],
+            "texts": digest(texts),
+            **({"max_tokens": max_tokens} if max_tokens else {}),
+        }
+        task = CitedTask(
+            task_id=digest(identity),
+            original_schema=schema,
+            units=(),
+            page_images=tuple(str(path) for path in images),
+            protocol="oneshot",
+            page_texts=texts,
+            max_tokens=max_tokens,
+        )
+        generation = backend.generate_cited(task)  # a batch run's store raises Pending here
+        if generation.finish_reason != "input_limit" or dpi <= 72:
+            return task, generation
+        dpi = max(72, dpi * 2 // 3)
+
+
+# Resolution of a page read on its own when it has no text layer (single short pages read better at
+# 200 than at 150 DPI on ExtractBench samples).
+SCAN_PAGE_DPI = 200
+
+# Output allowed for the fields a cut-off answer never reached, when none of them is a list: a few
+# values, while a whole-document request left unbounded can go on to write the table again.
+REST_MAX_TOKENS = 2048
+
+
+def _answer(
+    document, schema, snapshot, texts, store, dpi, backend, label="document", depth=0, max_tokens=None
+):
+    """The answer to `schema`, every request it took as (label, generation, cut-off handled), and
+    the whole-document request's task.
+
+    An answer cut off at the output limit while writing a top-level list of records (a table longer
+    than one answer can hold) is completed by reading that list page by page: each request shows one
+    page image and its text, the records of all pages are kept in page order, identical ones
+    included, and rows continued across a page break get their group's labels (`carry_forward`).
+    (Adding the end of the previous page as context changed nothing but added duplicated rows.)
+    Fields the cut-off answer never reached are asked for again over the whole document, which may
+    split in turn.
+    """
+    import hashlib
+
+    from docextract.cited import CitedTask, Pending
+    from docextract.contracts import digest
+
+    task, generation = _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens)
+    partial = parse_answer(generation.raw_text)
+    cut = generation.finish_reason == "length" and depth < 3
+    table = cut_off_table(partial, schema, generation.raw_text) if cut else None
+    if table is None:
+        return partial, [(label, generation, False)], task
+    prepared = prepare_schema(schema)
+    rows = split_schema(prepared, [table])
+    images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
+    bare = [index for index in range(len(images)) if not texts or len(texts[index].strip()) < 200]
+    if bare and dpi < SCAN_PAGE_DPI:
+        # A page without its own text is read from the image alone: sharper for one page at a time.
+        sharp = render_page_images(
+            document, store / snapshot.snapshot_id / f"dpi-{SCAN_PAGE_DPI}", SCAN_PAGE_DPI
+        )
+        images = [sharp[index] if index in bare else image for index, image in enumerate(images)]
+    pending: list[str] = []
+    pages = []
+    steps = [(label, generation, True)]
+    for index, image in enumerate(images):
+        own = (texts[index],) if texts else ()
+        cap = page_output_cap(texts[index]) if texts else None
+        # A page cut off at its text-sized cap (its table may be an image) is asked again uncapped.
+        for limit in (cap, None) if cap else (None,):
+            identity = {
+                "protocol": "oneshot-page/1",
+                "schema": rows,
+                "backend": backend.identity,
+                "image": hashlib.sha256(image.read_bytes()).hexdigest(),
+                "texts": digest(own),
+                "page": index + 1,
+                "pages": len(images),
+                "max_tokens": limit,
+            }
+            page = CitedTask(
+                task_id=digest(identity),
+                original_schema=rows,
+                units=(),
+                page_images=(str(image),),
+                protocol="oneshot",
+                page_texts=own,
+                first_page=index + 1,
+                page_count=len(images),
+                max_tokens=limit,
+            )
+            try:
+                answer = backend.generate_cited(page)
+            except Pending as waiting:  # a batch run queues every page at once
+                pending.extend(waiting.task_ids)
+                break
+            if answer.finish_reason == "length" and limit is not None:
+                steps.append((f"page {index + 1} (capped)", answer, True))
+                continue
+            pages.append((index, answer))
+            break
+    data = {key: value for key, value in partial.items() if key != table}
+    missing = [key for key in prepared["properties"] if key != table and key not in partial]
+    if missing:
+        try:
+            rest, more, _ = _answer(
+                document,
+                split_schema(prepared, missing),
+                snapshot,
+                texts,
+                store,
+                dpi,
+                backend,
+                label="remaining fields",
+                depth=depth + 1,
+                max_tokens=None
+                if any("array" in _types(_resolve(prepared["properties"][key], prepared)) for key in missing)
+                else REST_MAX_TOKENS,
+            )
+            data.update(rest)
+            steps += more
+        except Pending as waiting:
+            pending.extend(waiting.task_ids)
+    if pending:
+        raise Pending(pending)
+    found: list[list] = [[] for _ in images]
+    for index, answer in pages:
+        steps.append((f"page {index + 1}", answer, False))
+        records = parse_answer(answer.raw_text).get(table)
+        found[index] = records if isinstance(records, list) else []
+    if texts:
+        found = carry_forward(found, list(texts), nullable_fields(prepared, table))
+    data[table] = [record for records in found for record in records]
+    return data, steps, task
 
 
 def extract_oneshot(
@@ -389,13 +809,13 @@ def extract_oneshot(
     schema; the answer is typed to the schema and its printed values are located for evidence.
 
     A request too long for the model's window is retried with smaller images (two thirds of the
-    resolution, down to 72 DPI). If it still does not fit, or the answer is cut off at the output limit,
-    `fallback()` (the windowed pipeline) answers instead when given.
+    resolution, down to 72 DPI). An answer cut off at the output limit while writing a top-level list
+    of records is completed page by page (`_answer`). If the request still does not fit, or an answer
+    cut off elsewhere cannot be completed that way, `fallback()` (the windowed pipeline) answers
+    instead when given.
     """
-    import hashlib
     import shutil
 
-    from docextract.cited import CitedTask
     from docextract.contracts import (
         Completion,
         Coverage,
@@ -411,36 +831,17 @@ def extract_oneshot(
     from docextract.schema import Schema
 
     snapshot = (parser or PdfiumParser()).parse(document)
-    texts = tuple(native_page_texts(snapshot)) if text_layer else ()
+    texts = tuple(pdf_page_texts(document)) if text_layer else ()
     store = page_images or workspace / "page-images"
     dpi = dpi or page_dpi(len(snapshot.pages))
-    while True:
-        images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
-        identity = {
-            "protocol": "oneshot/1",
-            "schema": schema,
-            "backend": backend.identity,
-            "images": [hashlib.sha256(path.read_bytes()).hexdigest() for path in images],
-            "texts": digest(texts),
-        }
-        task = CitedTask(
-            task_id=digest(identity),
-            original_schema=schema,
-            units=(),
-            page_images=tuple(str(path) for path in images),
-            protocol="oneshot",
-            page_texts=texts,
-        )
-        generation = backend.generate_cited(task)  # a batch run's store raises Pending here
-        if generation.finish_reason != "input_limit" or dpi <= 72:
-            break
-        dpi = max(72, dpi * 2 // 3)
-    if generation.finish_reason in ("input_limit", "length") and fallback is not None:
+    data, steps, task = _answer(document, schema, snapshot, texts, store, dpi, backend)
+    generation, by_pages = steps[0][1], steps[0][2]
+    if not by_pages and generation.finish_reason in ("input_limit", "length") and fallback is not None:
         return fallback()
     # A replay of a run that stopped before this document's answer: nothing was read, so nothing is
     # filled in (not even check boxes the schema defines as false when blank).
     answered = generation.finish_reason not in ("not_stored", "input_limit")
-    data = conform(parse_answer(generation.raw_text), schema) if answered else {}
+    data = conform(data, schema) if answered else {}
     compiled = Schema(schema)
     try:
         validation = compiled.validate(data)
@@ -476,12 +877,16 @@ def extract_oneshot(
                 unresolved.append(
                     UnresolvedItem(pointer=pointer, reason="value not located in the page text")
                 )
-    if generation.finish_reason == "length":
-        unresolved.append(UnresolvedItem(pointer="", reason="answer cut off at the output limit"))
-    if not answered:
-        unresolved.append(
-            UnresolvedItem(pointer="", reason=f"document not answered ({generation.finish_reason})")
-        )
+    for label, step, handled in steps:
+        if step.finish_reason == "length" and not handled:
+            reason = "answer cut off at the output limit"
+            unresolved.append(
+                UnresolvedItem(pointer="", reason=reason if step is generation else f"{label}: {reason}")
+            )
+        elif step.finish_reason in ("not_stored", "input_limit"):
+            unresolved.append(
+                UnresolvedItem(pointer="", reason=f"{label} not answered ({step.finish_reason})")
+            )
     lines = [atom.atom_id for page in snapshot.pages for atom in page.atoms if atom.kind == "line"]
     result = ExtractionResult(
         snapshot_id=snapshot.snapshot_id,
@@ -495,10 +900,10 @@ def extract_oneshot(
         validation=validation,
         usage=Usage(
             backend=backend.identity.get("backend", "unknown"),
-            generated_attempts=1,
-            committed_tasks=1,
-            input_tokens=generation.input_tokens or 0,
-            output_tokens=generation.output_tokens or 0,
+            generated_attempts=len(steps),
+            committed_tasks=len(steps),
+            input_tokens=sum(step.input_tokens or 0 for _, step, _ in steps),
+            output_tokens=sum(step.output_tokens or 0 for _, step, _ in steps),
             cost_usd=None,
         ),
         completion=Completion(
