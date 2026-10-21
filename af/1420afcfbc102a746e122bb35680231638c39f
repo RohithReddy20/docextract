@@ -1,0 +1,22 @@
+tests/test_remote.py
+  s_eaf722cf290d93::t_e9742d064bd33f 132,205
+  s_eaf722cf290d93::t_10a3a2b5f3b208 221-224
+src/docextract/vllm_engine.py
+  s_eaf722cf290d93::t_e9742d064bd33f 49,104-107,209-211,230,251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af1420afcfbc102a746e122bb35680231638c39f",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
