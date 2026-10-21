@@ -22,7 +22,9 @@ def require_remote() -> str:
         return "kaggle"
     if os.environ.get("MODAL_TASK_ID"):
         return "modal"
-    raise RemoteOnlyError("Model downloads and execution are permitted only on Kaggle or Modal")
+    if os.environ.get("COLAB_RELEASE_TAG") and Path("/content").is_dir():
+        return "colab"
+    raise RemoteOnlyError("Model downloads and execution are permitted only on Kaggle, Modal or Colab")
 
 
 class VllmCitedEngine:
@@ -58,6 +60,7 @@ class VllmCitedEngine:
         import vllm
         from vllm import LLM, SamplingParams
 
+        self.max_images = max_images
         self.llm = LLM(
             model=str(checkpoint),
             # float16 on T4 (no bfloat16 support); the checkpoints' own bfloat16 where supported.
@@ -199,7 +202,8 @@ class VllmCitedEngine:
             else:
                 ids = self.prompt_ids(task)
                 prompt, length = {"prompt_token_ids": ids}, len(ids)
-            if length + self.limit(task) > self.max_model_len:
+            # More images than the engine accepts would make vLLM raise: refused like a long prompt.
+            if length + self.limit(task) > self.max_model_len or len(task.page_images) > self.max_images:
                 refusal = GenerationResult(raw_text="", finish_reason="input_limit", input_tokens=length)
                 self.ready.append((task.task_id, refusal))
                 continue

@@ -125,7 +125,7 @@ def test_vllm_streaming_maps_suffixed_request_ids_and_refuses_oversized_windows(
 
     engine = object.__new__(VllmCitedEngine)
     engine.llm = SimpleNamespace(llm_engine=FakeEngine())
-    engine.max_model_len, engine.max_new_tokens = 10, 4
+    engine.max_model_len, engine.max_new_tokens, engine.max_images = 10, 4, 0
     engine.ready, engine.requests, engine.telemetry = [], {}, []
     # One request in the engine at a time: the rest wait in the backlog (page images use memory).
     engine.backlog, engine.active, engine.in_flight = deque(), set(), 1
@@ -198,7 +198,7 @@ def test_vllm_sends_page_images_with_a_text_prompt(tmp_path):
     engine = object.__new__(VllmCitedEngine)
     engine.llm = SimpleNamespace(llm_engine=FakeEngine())
     engine.tokenizer, engine.arm, engine.protocol = Tokenizer(), "a", "cited"
-    engine.max_model_len, engine.max_new_tokens = 1000, 100
+    engine.max_model_len, engine.max_new_tokens, engine.max_images = 1000, 100, 1
     engine.ready, engine.requests, engine.telemetry = [], {}, []
     engine.backlog, engine.active, engine.in_flight = deque(), set(), 8
     engine.params = lambda task: None
@@ -212,3 +212,22 @@ def test_vllm_sends_page_images_with_a_text_prompt(tmp_path):
     engine.max_model_len = 150  # 320*400/1024 = 125 image tokens alone exceed the room left
     engine.submit([task.model_copy(update={"task_id": "t2"})])
     assert engine.ready[0][1].finish_reason == "input_limit" and len(requests) == 1
+    # More images than the engine was started for: refused before vLLM would raise.
+    engine.max_model_len, engine.ready = 1000, []
+    engine.submit([task.model_copy(update={"task_id": "t3", "page_images": (str(image_path),) * 2})])
+    assert engine.ready[0][1].finish_reason == "input_limit" and len(requests) == 1
+
+
+def test_models_run_only_on_kaggle_modal_or_colab(monkeypatch):
+    from docextract.remote import RemoteOnlyError
+    from docextract.vllm_engine import require_remote
+
+    for name in ("KAGGLE_KERNEL_RUN_TYPE", "MODAL_TASK_ID", "COLAB_RELEASE_TAG"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(RemoteOnlyError):
+        require_remote()
+    monkeypatch.setenv("COLAB_RELEASE_TAG", "release")  # without Colab's /content folder: not a Colab VM
+    with pytest.raises(RemoteOnlyError):
+        require_remote()
+    monkeypatch.setattr("docextract.vllm_engine.Path.is_dir", lambda self: str(self) == "/content")
+    assert require_remote() == "colab"
