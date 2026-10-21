@@ -22,8 +22,8 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
   break given their group's label by code (`carry_forward`). A request that still does not fit, or an
   answer cut off elsewhere, falls back to the windowed pipeline (plain values per window, located by
   code). Recommended model: Qwen3.5-9B (Apache-2.0; `--arm c --quantization fp8`), weights quantized
-  to FP8 at load so it fits a 24 GB L4. Models run only on Kaggle and Modal; nothing is downloaded
-  locally.
+  to FP8 at load so it fits a 24 GB L4. Models run only on Kaggle, Modal and Colab; nothing is
+  downloaded locally.
 - **Built for the real benchmark, being measured now:** OCR (docTR) for pages without a text layer,
   with sideways and upside-down scans read upright; filled PDF form fields read as text;
   splitting oversized schemas into field groups; streamed generation with vLLM (which runs
@@ -48,7 +48,9 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
   medium documents 67.8 → 90.3 and 90.8 → 95.9 (4B → 9B); medium documents with 20K-token answers that
   the full run never finished 34 → 99; long documents with small answers 62.6 → 76.5. Evidence located
   after extraction: grounded F1 56.2 vs 44.8 on 24 short documents. Probes run with
-  `runtimes/modal/probe.py` (a few documents, several methods per model load, a few cents each).
+  `runtimes/modal/probe.py` (a few documents, several methods per model load, a few cents each), or
+  the same requests on a Colab GPU with `runtimes/colab/probe.ipynb` (answers saved to Google Drive as
+  they finish; a rerun after a disconnect asks only what is left).
 - **Long tables (14 long documents list 40K-500K tokens of rows), measured on three:** read page by
   page, a 66-page clinical listing went 50.9 → 95.7 and a 59-page fund schedule 21.1 → 71.5; on a
   123-page check register (0.0 in the full run) all rows of the 37 pages read before stopping were

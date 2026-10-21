@@ -1,0 +1,34 @@
+{
+  "name": "c1",
+  "purpose": "First run on a Colab GPU: the whole 123-page check register g4 stopped after 37 pages (3,308 rows; final-v1 0.0), read page by page as in g4 with the same model and requests. The notebook raises max_num_seqs on GPUs with more memory than an L4.",
+  "packet": "final-v1",
+  "ids": [
+    "8c9f6162ee146d64"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 131072,
+    "max_images": 130,
+    "speculative_tokens": 2,
+    "max_num_seqs": 24
+  },
+  "limit_minutes": 60,
+  "methods": [
+    {
+      "name": "pages",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 2048,
+      "page_max_tokens": 16384,
+      "page_cap": true,
+      "context_chars": 0,
+      "split": {
+        "8c9f6162ee146d64": "checks"
+      }
+    }
+  ]
+}

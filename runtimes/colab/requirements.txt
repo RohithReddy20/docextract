@@ -1,0 +1,9 @@
+# What runtimes/colab/probe.py needs on a Colab GPU (docextract itself runs from the source tree).
+vllm==0.30.0
+jsonschema>=4.23.0,<5
+pydantic>=2.11.9,<3
+pypdfium2==4.30.0
+pypdf==6.1.1
+huggingface-hub>=0.34
+llama-extract-bench @ git+https://github.com/run-llama/ExtractBench.git@0e7647997211867060a645ac82deb9f7bc4a3b3f
+parse-bench==1.0.4
