@@ -1,0 +1,25 @@
+tools/probe_jobs.py
+  s_eaf722cf290d93::t_df92ac5df7e84f 89-90
+manifests/probes/k1.json
+  s_eaf722cf290d93::t_df92ac5df7e84f 1-36
+runtimes/probe_batch.py
+  s_eaf722cf290d93::t_df92ac5df7e84f 180-181
+docs/model-trials.md
+  s_eaf722cf290d93::t_35b30ec73d6ac6 247-254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ce67f3ebfc2d9076f676b952b24737ce59324abc",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
