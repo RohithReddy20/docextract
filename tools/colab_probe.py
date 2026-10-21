@@ -90,9 +90,12 @@ def remote(session: str, code: str) -> dict:
 
 
 def usage_rate() -> float | None:
-    """The account's compute units per hour now (all its VMs), as `colab usage` reports it."""
-    found = re.search(r"Usage rate: ([\d.]+)", colab("usage", capture=True, check=False))
-    return float(found.group(1)) if found else None
+    """Compute units per hour of one VM now: the account's rate (all its VMs, as `colab usage`
+    reports it) divided by its active VMs, which runs of one configuration rent alike."""
+    reply = colab("usage", capture=True, check=False)
+    rate = re.search(r"Usage rate: ([\d.]+)", reply)
+    vms = re.search(r"Active assignments: (\d+)", reply)
+    return float(rate.group(1)) / max(1, int(vms.group(1)) if vms else 1) if rate else None
 
 
 def source_archive() -> bytes:
@@ -187,7 +190,7 @@ def launch(
 ) -> subprocess.Popen:
     """Check the live rate, upload the source (and earlier answers) and start the job."""
     rate = usage_rate()
-    print(f"VM ready; the account now uses {rate} compute units per hour")
+    print(f"VM ready; it uses {rate:.2f} compute units per hour" if rate else "VM ready")
     if not args.dry_run and rate and rate * hours > max(args.confirm_units, 0.1) * 1.5:
         raise SystemExit("The live rate is well above the estimate: stopped before any work")
     with tempfile.TemporaryDirectory() as scratch:
@@ -247,13 +250,18 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="CPU VM: setup and requests, no model")
     parser.add_argument("--keep", action="store_true", help="leave the VM running afterwards")
     parser.add_argument("--attach", action="store_true", help="watch a run already started on its VM")
+    parser.add_argument("--shard", default="0/1", help="i/n: a run configuration's share for this VM")
+    parser.add_argument("--score", action="store_true", help="score a product run on its VM at the end")
+    parser.add_argument("--score-only", action="store_true", help="only score the results on the VM")
     parser.add_argument(
         "--reuse", action="store_true", help="start on this run's VM from an earlier job (packages, model)"
     )
     args = parser.parse_args()
 
     config = json.loads(args.config.read_text())
-    name = config["name"]
+    index, count = (int(part) for part in args.shard.split("/"))
+    # Each share of a run has its own VM, answer folder and session.
+    name = config["name"] if count == 1 else f"{config['name']}-{index}"
     # A probe configuration (manifests/probes/) compares prompt methods; a run configuration (with
     # "variants") runs the product itself, whose answer store lets a rerun continue.
     product = "variants" in config
@@ -297,6 +305,9 @@ def main():
         "--engine",
         args.engine,
         *(["--dry-run"] if args.dry_run else []),
+        *(["--shard", args.shard] if count > 1 else []),
+        *(["--score"] if args.score else []),
+        *(["--score-only"] if args.score_only else []),
     ]
     # Setup and runner in a subshell that stops at the first failure; its exit code ends the log.
     command = (
@@ -339,7 +350,9 @@ def main():
                 print("past the time limit with setup: stopping")
                 break
     finally:
-        copied = fetch(session, out, local, ["answers.json", store, "run.log"])
+        copied = fetch(
+            session, out, local, ["answers.json", store, "run.log", *(["score.json"] if product else [])]
+        )
         if holder and holder.poll() is None:
             holder.kill()
         if "answers.json" not in copied and not product and (local / store).exists():

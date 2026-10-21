@@ -53,6 +53,28 @@ def packet(ids: list[str], cache: Path) -> Path:
     return manifest
 
 
+def evaluation_packet(ids: list[str], cache: Path) -> Path:
+    """The official scorer's answer files for `ids`, written on this VM from the dataset rows (as
+    tools/extractbench_packet.py writes them); they never leave the VM."""
+    from extract_bench.data.download import _write_sidecar
+
+    from docextract.contracts import digest
+
+    evaluation, wanted, index = cache / "evaluation", set(ids), []
+    for split in ("short", "medium", "long"):
+        with dataset_file(f"{split}.jsonl", cache).open(encoding="utf-8") as lines:
+            for line in lines:
+                row = json.loads(line) if line.strip() else None
+                case_id = digest(row["id"])[:16] if row else None
+                if case_id in wanted:
+                    sidecar = _write_sidecar(row, evaluation / split, cache)
+                    index.append(
+                        {"id": case_id, "split": split, "test_json": str(sidecar.relative_to(evaluation))}
+                    )
+    (evaluation / "index.json").write_text(json.dumps({"version": "evaluation-index/1", "cases": index}))
+    return evaluation
+
+
 def arguments(config: dict) -> list[str]:
     """tools/extract_remote.py's options for a run configuration (the GPU stage of final_run.py)."""
     units = config.get("max_window_units")
@@ -113,6 +135,30 @@ def answers(run: Path, ids: list[str]) -> list[dict]:
     return rows
 
 
+def run_product(command: list[str], env: dict, minutes: float | None, started: float) -> int:
+    """Run the product until it ends or `minutes` after `started`; its exit code."""
+    # Its own process group, so stopping it also stops vLLM's engine process (which otherwise keeps
+    # the GPU's memory).
+    product = subprocess.Popen(command, cwd=ROOT, env=env, start_new_session=True)
+    # The notebook's stop button and the driver's stop end this process with SIGTERM; the product
+    # is stopped too, and what finished stays stored.
+    signal.signal(signal.SIGTERM, interrupt)
+    try:
+        return product.wait(timeout=minutes * 60 - (time.time() - started) if minutes else None)
+    except (subprocess.TimeoutExpired, KeyboardInterrupt):
+        print("stopping the product: time limit or stop", flush=True)
+        os.killpg(product.pid, signal.SIGTERM)
+        try:
+            product.wait(timeout=120)
+        except subprocess.TimeoutExpired:
+            pass
+        try:
+            os.killpg(product.pid, signal.SIGKILL)  # anything of it still running
+        except ProcessLookupError:
+            pass
+        return product.returncode or 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True, help="a run configuration")
@@ -120,7 +166,10 @@ def main():
     parser.add_argument("--minutes", type=float, help="stop the product after this long")
     parser.add_argument("--engine", type=json.loads, default={}, help="configuration values to override")
     parser.add_argument("--cache", type=Path, default=Path("/content/cache"))
+    parser.add_argument("--shard", default="0/1", help="i/n: this VM's share of the documents")
     parser.add_argument("--dry-run", action="store_true", help="build the packet only, without a GPU")
+    parser.add_argument("--score", action="store_true", help="score this VM's documents at the end")
+    parser.add_argument("--score-only", action="store_true", help="score the results already here")
     args = parser.parse_args()
 
     started = time.time()
@@ -151,33 +200,26 @@ def main():
         "manifests/model-research.json",
         "--cache-root",
         str(args.cache / "models"),
+        # Every VM builds the whole packet; the product picks its share (heaviest documents first to
+        # the lightest share, by pages and schema size), the same on every VM.
+        "--shard",
+        args.shard,
         *arguments(config),
     ]
-    # Its own process group, so stopping it also stops vLLM's engine process (which otherwise keeps
-    # the GPU's memory).
-    product = subprocess.Popen(command, cwd=ROOT, env=env, start_new_session=True)
-    # The notebook's stop button and the driver's stop end this process with SIGTERM; the product
-    # is stopped too, and what finished stays stored.
-    signal.signal(signal.SIGTERM, interrupt)
-    try:
-        product.wait(timeout=args.minutes * 60 - (time.time() - started) if args.minutes else None)
-    except (subprocess.TimeoutExpired, KeyboardInterrupt):
-        print("stopping the product: time limit or stop", flush=True)
-        os.killpg(product.pid, signal.SIGTERM)
-        try:
-            product.wait(timeout=120)
-        except subprocess.TimeoutExpired:
-            pass
-        try:
-            os.killpg(product.pid, signal.SIGKILL)  # anything of it still running
-        except ProcessLookupError:
-            pass
+    code = 0 if args.score_only else run_product(command, env, args.minutes, started)
     rows = answers(run, config["ids"])
     (args.out / "answers.json").write_text(json.dumps({"outputs": rows}, indent=1))
     minutes = (time.time() - started) / 60
     print(f"{len(rows)} of {len(config['ids'])} documents finished in {minutes:.1f} minutes")
-    if product.returncode:
-        raise SystemExit(f"the product exited with code {product.returncode}")
+    if args.score or args.score_only:
+        # This VM's share (every document of it, finished or not: a missing result scores as empty).
+        mine = [row["id"] for row in json.loads((run / "summary.json").read_text())["cases"]]
+        evaluation = evaluation_packet(mine, args.cache / "extractbench")
+        command = ["python", "tools/score_extractbench.py", "--evaluation", str(evaluation)]
+        command += ["--results", str(run), "--output", str(args.out / "score.json")]
+        subprocess.run(command, cwd=ROOT, env=env, check=True)
+    if code:
+        raise SystemExit(f"the product exited with code {code}")
 
 
 if __name__ == "__main__":
