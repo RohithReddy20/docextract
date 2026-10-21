@@ -328,6 +328,7 @@ def extract(config: dict, shard: int, ids: list[str], deadline: float) -> dict:
         "--variants",
         json.dumps(variants_of(config)),
         *(["--quantization", config["quantization"]] if config.get("quantization") else []),
+        *(["--kv-cache-dtype", config["kv_cache_dtype"]] if config.get("kv_cache_dtype") else []),
         *(
             ["--max-document-pages", str(config["max_document_pages"])]
             if config.get("max_document_pages")

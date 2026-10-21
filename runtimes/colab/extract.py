@@ -83,6 +83,7 @@ def arguments(config: dict) -> list[str]:
         "--variants",
         json.dumps(config["variants"]),
         *(["--quantization", config["quantization"]] if config.get("quantization") else []),
+        *(["--kv-cache-dtype", kv] if (kv := config.get("kv_cache_dtype")) else []),
         *(["--max-document-pages", str(pages)] if (pages := config.get("max_document_pages")) else []),
     ]
 

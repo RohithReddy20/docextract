@@ -168,6 +168,7 @@ def engine_for(args):
             else args.max_document_pages,
             prefix_caching=not args.no_prefix_caching,
             quantization=args.quantization,
+            kv_cache_dtype=args.kv_cache_dtype,
         )
     from docextract.remote import GenerationOptions, KaggleTransformersBackend
 
@@ -198,6 +199,7 @@ def main():
     )
     parser.add_argument("--arm", choices=("a", "b", "c"), required=True)
     parser.add_argument("--quantization", choices=("fp8",), help="quantize weights at load (vLLM)")
+    parser.add_argument("--kv-cache-dtype", choices=("fp8",), help="store running answers in 8 bits (vLLM)")
     parser.add_argument("--kernels", choices=("torch", "fla"), default="torch")
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--cache-root", type=Path, required=True)
