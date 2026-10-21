@@ -1,0 +1,28 @@
+{
+  "note": "The product (launcher -> extract_remote -> extract_cited protocol oneshot) on two long documents too long for one request, after the change that reads such documents' tables page by page and their other fields from the first and last pages: a 114-page creditor list and a 72-page fund report with three tables. Same settings as fresh-1 except 24 answers at once (the L4 limit found in the long-table probes). Qwen3.5-9B with FP8 weights on a Colab L4.",
+  "name": "l1",
+  "arm": "c",
+  "dtype": "bfloat16",
+  "quantization": "fp8",
+  "ids": [
+    "57152ea05aa844ef",
+    "2e3ac6d0fb0d3709"
+  ],
+  "limit_minutes": 90,
+  "max_window_chars": 24000,
+  "max_schema_chars": 24000,
+  "max_new_tokens": 16384,
+  "max_model_len": 131072,
+  "max_num_seqs": 24,
+  "gpu_memory_utilization": 0.92,
+  "ocr": "doctr",
+  "speculative_tokens": 2,
+  "max_document_pages": 64,
+  "variants": [
+    {
+      "name": "",
+      "protocol": "oneshot",
+      "page_images": true
+    }
+  ]
+}

@@ -1,5 +1,6 @@
-# What runtimes/colab/probe.py needs on a Colab GPU (docextract itself runs from the source tree).
+# What the Colab runners (runtimes/colab/) need on a GPU VM; docextract runs from the source tree.
 vllm==0.30.0
+python-doctr==1.1.0
 jsonschema>=4.23.0,<5
 pydantic>=2.11.9,<3
 pypdfium2==4.30.0

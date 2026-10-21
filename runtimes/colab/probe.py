@@ -24,13 +24,44 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT / "runtimes"), str(ROOT / "tools")]
 
 from probe_batch import answered, load_engine, request_key, run  # noqa: E402
 
-# Colab compute units per hour, as measured by third parties (Google publishes no table); the
-# notebook's Resources panel shows the live rate.
-UNITS_PER_HOUR = {"T4": 1.2, "L4": 1.7, "A100": 7.5, "H100": 15.0}
+# Colab compute units per hour, as `colab usage` reported them while a VM of each kind ran
+# (2026-10-21; T4 and H100 from third-party measurements).
+UNITS_PER_HOUR = {"T4": 1.2, "L4": 1.54, "A100": 5.3, "H100": 15.0}
+# GPUs with FP8 arithmetic (compute capability 8.9 or newer); on an A100 vLLM's FP8 kernel fails.
+FP8_GPUS = ("L4", "G4", "H100")
+NO_FP8 = "{} has no FP8 arithmetic: use an L4, G4 or H100, or --engine '{{\"quantization\": null}}'"
+
+
+# Memory an L4 leaves for running answers (KV cache) with the FP8 9B model loaded: configurations
+# set max_num_seqs for it, and larger GPUs run proportionally more answers at once.
+L4_KV_GIB = 7.7
+MODEL_GIB = 13.0  # FP8 weights plus activations and the vision encoder
 
 
 def interrupt(*_):
     raise KeyboardInterrupt
+
+
+def scaled_sequences(engine: dict, total_gib: float) -> int:
+    """`max_num_seqs` for a GPU with `total_gib` of memory, from the configuration's L4 value."""
+    configured = engine.get("max_num_seqs", 32)
+    kv = engine.get("gpu_memory_utilization", 0.92) * total_gib - MODEL_GIB
+    return max(configured, min(128, round(configured * kv / L4_KV_GIB)))
+
+
+def collect(sink: Path, outputs: list[dict] = ()) -> list[dict]:
+    """Every answer in `sink` (finished, of every run), then `outputs` of requests not among them."""
+    rows = {}
+    if sink.exists():
+        for line in sink.read_text().splitlines():
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:  # a line cut off when a run stopped
+                continue
+            rows[request_key(row)] = row
+    for row in outputs:
+        rows.setdefault(request_key(row), row)
+    return list(rows.values())
 
 
 def units_per_hour(gpu: str) -> float:
@@ -94,6 +125,9 @@ def main():
         "--engine", type=json.loads, default={}, help='engine options to override, e.g. {"max_num_seqs": 64}'
     )
     parser.add_argument("--cache", type=Path, default=Path("/content/cache"))
+    parser.add_argument(
+        "--dry-run", action="store_true", help="build the requests and fetch the PDFs, without a GPU"
+    )
     args = parser.parse_args()
 
     import torch
@@ -111,7 +145,18 @@ def main():
     if missing:
         raise SystemExit(f"No dataset PDF for {missing}: rebuild jobs.json after tools/probe_data.sh")
     minutes = args.minutes or batch["limit_minutes"]
+    if args.dry_run:
+        names = {job["dataset_pdf"] for job in jobs}
+        for name in names:
+            dataset_file(name, args.cache / "extractbench")
+        print(f"dry run: {len(jobs)} jobs over {len(names)} PDFs, engine {json.dumps(engine)}")
+        return
     gpu = torch.cuda.get_device_name(0)
+    if engine.get("quantization") == "fp8" and torch.cuda.get_device_capability(0) < (8, 9):
+        raise SystemExit(NO_FP8.format(gpu))
+    if "max_num_seqs" not in args.engine:
+        total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        engine["max_num_seqs"] = scaled_sequences(engine, total)
     rate = units_per_hour(gpu)
     print(f"engine: {json.dumps(engine)}")
     print(f"{gpu}: at most {minutes:.0f} minutes, about {minutes / 60 * rate:.1f} compute units")
@@ -146,28 +191,15 @@ def main():
         outputs = []
 
     # Every finished answer of every run, plus what this run left unfinished.
-    rows = {}
-    for line in sink.read_text().splitlines():
-        try:
-            row = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        rows[request_key(row)] = row
-    for row in outputs:
-        rows.setdefault(request_key(row), row)
+    rows = collect(sink, outputs)
     seconds = time.time() - started
     (args.out / "answers.json").write_text(
         json.dumps(
-            {
-                "outputs": list(rows.values()),
-                "gpu": gpu,
-                "load_seconds": round(loaded - started),
-                "seconds": round(seconds),
-            },
+            {"outputs": rows, "gpu": gpu, "load_seconds": round(loaded - started), "seconds": round(seconds)},
             indent=1,
         )
     )
-    unfinished = sum(1 for row in rows.values() if row["finish_reason"] == "deadline")
+    unfinished = sum(1 for row in rows if row["finish_reason"] == "deadline")
     print(
         f"{len(rows) - unfinished} answered, {unfinished} unfinished, in {seconds / 60:.1f} minutes "
         f"(about {seconds / 3600 * rate:.1f} compute units); answers in {args.out}"
