@@ -46,6 +46,7 @@ class VllmCitedEngine:
         prefix_caching=True,
         quantization=None,
         kv_cache_dtype=None,
+        queued_images=192,
     ):
         platform = require_remote()
         if arm not in ("a", "b", "c"):
@@ -100,6 +101,10 @@ class VllmCitedEngine:
         self.backlog: deque[CitedTask] = deque()
         self.active: set[str] = set()
         self.in_flight = 2 * max_num_seqs
+        # Page images of the admitted requests, running or waiting inside vLLM, which holds each
+        # one's preprocessed pixels in host memory until it finishes: with whole-document requests
+        # of up to 64 pages, 64 admitted requests filled a 52 GB VM. One request is always admitted.
+        self.queued_images, self.images_of = queued_images, {}
         self.constrained = constrained
         self.arm, self.max_model_len, self.max_new_tokens = arm, max_model_len, max_new_tokens
         self.identity = {
@@ -201,6 +206,9 @@ class VllmCitedEngine:
 
     def _admit(self) -> None:
         while self.backlog and len(self.active) < self.in_flight:
+            images = len(self.backlog[0].page_images)
+            if self.active and sum(self.images_of.values()) + images > self.queued_images:
+                break
             task = self.backlog.popleft()
             if task.page_images:
                 prompt, length = self.multimodal_prompt(task)
@@ -219,6 +227,7 @@ class VllmCitedEngine:
             if isinstance(internal, str):
                 self.requests[internal] = (task.task_id, submitted)
             self.active.add(task.task_id)
+            self.images_of[task.task_id] = images
 
     def busy(self) -> bool:
         return bool(self.ready or self.backlog) or self.llm.llm_engine.has_unfinished_requests()
@@ -239,6 +248,7 @@ class VllmCitedEngine:
             for alias in [name for name, (owner, _) in self.requests.items() if owner == task_id]:
                 del self.requests[alias]
             self.active.discard(task_id)
+            self.images_of.pop(task_id, None)
             generation = self.result(output)
             answers.append((task_id, generation))
             self.telemetry.append(

@@ -129,6 +129,7 @@ def test_vllm_streaming_maps_suffixed_request_ids_and_refuses_oversized_windows(
     engine.ready, engine.requests, engine.telemetry = [], {}, []
     # One request in the engine at a time: the rest wait in the backlog (page images use memory).
     engine.backlog, engine.active, engine.in_flight = deque(), set(), 1
+    engine.queued_images, engine.images_of = 192, {}
     engine.params = lambda task: None
     lengths = {"short": 3, "long": 8, "other": 2}
     engine.prompt_ids = lambda task: list(range(lengths[task.task_id]))
@@ -201,6 +202,7 @@ def test_vllm_sends_page_images_with_a_text_prompt(tmp_path):
     engine.max_model_len, engine.max_new_tokens, engine.max_images = 1000, 100, 1
     engine.ready, engine.requests, engine.telemetry = [], {}, []
     engine.backlog, engine.active, engine.in_flight = deque(), set(), 8
+    engine.queued_images, engine.images_of = 192, {}
     engine.params = lambda task: None
     task = CitedTask(
         task_id="t1", original_schema={"type": "object"}, units=(), page_images=(str(image_path),)
@@ -216,6 +218,10 @@ def test_vllm_sends_page_images_with_a_text_prompt(tmp_path):
     engine.max_model_len, engine.ready = 1000, []
     engine.submit([task.model_copy(update={"task_id": "t3", "page_images": (str(image_path),) * 2})])
     assert engine.ready[0][1].finish_reason == "input_limit" and len(requests) == 1
+    # Page images admitted at once are bounded: t1's image fills the budget, so t4 waits for it.
+    engine.queued_images = 1
+    engine.submit([task.model_copy(update={"task_id": "t4"})])
+    assert len(requests) == 1 and [waiting.task_id for waiting in engine.backlog] == ["t4"]
 
 
 def test_models_run_only_on_kaggle_modal_or_colab(monkeypatch):
