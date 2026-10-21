@@ -177,6 +177,8 @@ def run(
         # merges the batch answers. Otherwise the whole document is one batch.
         size = job.get("pages_per_request") or len(every)
         spans = [(start, min(start + size, len(every))) for start in range(0, len(every), size)]
+        if job.get("max_pages"):
+            spans = [(first, last) for first, last in spans if last <= job["max_pages"]]
         for batch, (first, last) in enumerate(spans):
             row = {
                 "id": job["id"],

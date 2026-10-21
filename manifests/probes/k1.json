@@ -1,0 +1,36 @@
+{
+  "name": "k1",
+  "purpose": "FP8 KV cache against the default on the check register's first 40 pages, read page by page as in c1 (whose answers are the comparison): the KV cache stored in FP8 holds about twice as many running answers, so the engine runs up to 48 at once instead of 24. Same model, requests and L4; measures throughput and whether the answers change.",
+  "packet": "final-v1",
+  "ids": [
+    "8c9f6162ee146d64"
+  ],
+  "engine": {
+    "arm": "c",
+    "quantization": "fp8",
+    "max_model_len": 131072,
+    "max_images": 130,
+    "speculative_tokens": 2,
+    "max_num_seqs": 48,
+    "kv_cache_dtype": "fp8"
+  },
+  "limit_minutes": 30,
+  "methods": [
+    {
+      "name": "pages",
+      "template_options": {
+        "enable_thinking": false
+      },
+      "dpi": 150,
+      "text_layer": true,
+      "max_tokens": 2048,
+      "page_max_tokens": 16384,
+      "page_cap": true,
+      "context_chars": 0,
+      "split": {
+        "8c9f6162ee146d64": "checks"
+      },
+      "max_pages": 40
+    }
+  ]
+}

@@ -244,6 +244,14 @@ are from the official `ExtractEvaluator` in a separate process.
   outliving a stopped product (it held the GPU's memory), and a pointless repeat of pages cut off by
   the engine's own output limit. `manifests/colab/l1.json`.
 
+- **FP8 KV cache (k1, Colab L4).** The check register's first 40 pages read page by page as in c1,
+  with the running answers' KV cache stored in FP8 (vLLM `kv_cache_dtype`, uncalibrated scales) and
+  up to 48 answers at once. The cache held 343,567 tokens instead of 184,025, about 20 answers ran
+  at once instead of 15, and generation went from 338 to 472 output tokens/s over the same stretch
+  (+40%). Answers did not change: 39 of 40 byte-identical to c1's, all 1,055 rows found, 96.66% of
+  fields right (c1 96.60%). The product's engine now takes `kv_cache_dtype` (`--kv-cache-dtype` in
+  tools/extract_remote.py and the launchers). `manifests/probes/k1.json`.
+
 ## Native value generation, first smoke
 
 Frozen source archive: `bf9ba39901f69ae2eea477fa82464874d6ab10b7d86976a5e696b0ebc6017dce`.

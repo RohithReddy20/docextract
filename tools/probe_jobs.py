@@ -86,6 +86,8 @@ def build(config: dict, data: Path) -> list[dict]:
                 "compact_json": method.get("compact_json", True),
                 "text_layer": method.get("text_layer", False),
                 "pages_per_request": method.get("pages_per_request"),
+                # Read only the first pages of a long document (requests still name its page count).
+                "max_pages": method.get("max_pages"),
                 "template_options": method.get("template_options", {}),
             }
             split = method.get("split", {}).get(case_id)
