@@ -49,13 +49,17 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
   the full run never finished 34 → 99; long documents with small answers 62.6 → 76.5. Evidence located
   after extraction: grounded F1 56.2 vs 44.8 on 24 short documents. Probes run with
   `runtimes/modal/probe.py` (a few documents, several methods per model load, a few cents each), or
-  the same requests on a Colab GPU with `runtimes/colab/probe.ipynb` (answers saved to Google Drive as
-  they finish; a rerun after a disconnect asks only what is left).
-- **Long tables (14 long documents list 40K-500K tokens of rows), measured on three:** read page by
-  page, a 66-page clinical listing went 50.9 → 95.7 and a 59-page fund schedule 21.1 → 71.5; on a
-  123-page check register (0.0 in the full run) all rows of the 37 pages read before stopping were
-  found, with 96.3% of fields right ([details](docs/model-trials.md)). Section headings printed pages
-  before a row are still guessed wrong at times, and such documents cost 10-40 L4 minutes each.
+  the same requests on a Colab GPU, from a terminal with Google's Colab CLI (`tools/colab_probe.py`:
+  rents the VM, copies answers back as they finish, releases it at the end) or from a browser with
+  `runtimes/colab/probe.ipynb`; a rerun after a disconnect asks only what is left.
+- **Long tables (14 long documents list 40K-500K tokens of rows), measured on five:** read page by
+  page, a 66-page clinical listing went 50.9 → 95.7, a 59-page fund schedule 21.1 → 71.5 and a
+  123-page check register 0.0 → 96.1, all 3,308 rows found ([details](docs/model-trials.md)). A
+  document too long for one request now has its lists of records read page by page and its other
+  fields read from its first and last pages: through the product, a 114-page creditor list went
+  6.9 → 98.3 and a 72-page fund report 3.2 → 79.6 (a small summary list read on every page is the
+  main loss left). Section headings printed pages before a row are still guessed wrong at times,
+  and such documents cost 10-60 L4 minutes each (dense pages run to 16K output tokens).
 - **Not done yet:** schemas too large for one request (the 155K-token tax return) still go through the
   windowed pipeline; long tables on scanned pages and in newspaper-style columns are untested; evidence
   for long documents is weaker than the windowed pipeline's (the same value printed in many places);

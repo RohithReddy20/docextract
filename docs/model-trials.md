@@ -208,6 +208,42 @@ are from the official `ExtractEvaluator` in a separate process.
   (it is not printed there) while the model carries it down like the fields whose descriptions say so.
   `manifests/probes/g4.json`.
 
+- **The whole check register on a Colab L4 (c1).** The register g4 stopped after 37 pages, with the
+  same requests and engine, run on a Colab L4 through Google's Colab CLI (`tools/colab_probe.py`).
+  All 3,308 rows on all 123 pages were found and 96.1% of their fields match the answer key
+  (ExtractBench score 96.1; final-v1 0.0). 1,062 of the 1,410 wrong fields are the type code carried
+  down to continuation lines, where the key leaves it empty; unlike the check number, date, vendor and
+  EFT flag, its schema description does not say to carry it. The request for the seven document-level
+  fields (district, title, dates, total) failed: the 123 page images and their text do not fit the
+  131K-token window even with images shrunk four times, so those fields stay empty. The product has
+  the same gap in a larger form: it reads a table page by page only when a whole-document answer is
+  cut off at the output limit, and a document too long for one request goes to the windowed pipeline
+  instead (the probes split the request by configuration). On the 22 pages both runs had answered when
+  compared, 21 answers were byte-identical to g4's on Modal. About 550K output tokens in about 40 L4
+  minutes of generation, over two sessions. Colab lessons: a VM whose kernel sits idle is reclaimed
+  after about half an hour, so the job now runs inside a kernel cell that waits for it; the CLI's
+  kernel connection took up to 40 s to open, past the client's 10 s default (`REQUEST_TIMEOUT`); an
+  A100 has no FP8 arithmetic and vLLM 0.30's FP8 kernel fails on it; no G4 was available. Rates seen:
+  L4 1.54 and A100 5.3 compute units an hour. `manifests/probes/c1.json`.
+
+- **The product on long documents that do not fit one request (l1, Colab L4).** After the change
+  that reads such a document's lists of records page by page and its other fields from its first and
+  last two pages (and refuses a request with more page images than the engine accepts), the product
+  itself (launcher, `tools/extract_remote.py`, `extract_cited` with the oneshot protocol, official
+  scoring) ran on two long documents the full run had failed: a 114-page creditor list went 6.9 →
+  98.3 and a 72-page fund report with three lists 3.2 → 79.6. Every whole-document request was
+  refused at 150, 100 and 72 DPI, then all 186 pages were read one at a time. The document-level
+  fields came right from the edge pages (title, case number, debtor, report date). The rest of the
+  loss: about 1-2% extra rows in the large lists (7,651 creditors for 7,554; 4,370 holdings for
+  4,299), and a two-row per-fund summary list read on every page (57 rows for 2), because each page
+  alone looks like a fund's schedule; small summary lists need another treatment. 1.55M output
+  tokens (pretty-printed JSON, up to 16K per dense page) took about 2 L4 hours over three jobs on
+  one VM: the KV cache held only 8-14 answers at once (220-420 tokens/s, less on the densest pages),
+  so a time limit stopped the first two jobs and the next resumed from the stored answers on the same
+  VM (`--reuse`). Fixed on the way: the product's import path on Colab, vLLM's engine process
+  outliving a stopped product (it held the GPU's memory), and a pointless repeat of pages cut off by
+  the engine's own output limit. `manifests/colab/l1.json`.
+
 ## Native value generation, first smoke
 
 Frozen source archive: `bf9ba39901f69ae2eea477fa82464874d6ab10b7d86976a5e696b0ebc6017dce`.
