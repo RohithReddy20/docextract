@@ -241,6 +241,7 @@ def cited_messages(task: CitedTask, arm: str, protocol: str = "cited") -> tuple[
             list(task.page_texts),
             first_page=task.first_page,
             page_count=task.page_count,
+            pages=list(task.page_numbers) or None,
         )
         content = [*({"type": "image"} for _ in task.page_images), {"type": "text", "text": text}]
         return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": content}], {}

@@ -74,9 +74,11 @@ def user_text(
     *,
     first_page: int = 1,
     page_count: int | None = None,
+    pages: list[int] | None = None,
 ) -> str:
     """The request text: the prepared schema, the instructions and, when given, the PDF's text layer.
-    A request for one page of a longer document (`page_count`) says which page it shows."""
+    A request for part of a longer document (`page_count`) says which pages it shows: the one page
+    `first_page`, or the listed `pages`."""
     text = (
         "Extract every field from the attached document page image(s) according to the JSON schema below.\n\n"
         "JSON schema:\n"
@@ -84,13 +86,21 @@ def user_text(
         "Return only one valid JSON object matching the schema. Do not wrap it in markdown fences.\n\n"
         f"{USER_INSTRUCTION}"
     )
-    if page_count:
+    if page_count and pages:
+        shown = ", ".join(map(str, pages[:-1])) + f" and {pages[-1]}" if len(pages) > 1 else str(pages[0])
+        text += (
+            f"\n\nThe images are pages {shown} of a {page_count}-page document; the other pages are not "
+            "shown. Extract what these pages show; use null (or an empty list) for anything not on them."
+        )
+    elif page_count:
         text += (
             f"\n\nThe image is page {first_page} of a {page_count}-page document. Extract what this page "
             "shows; use null (or an empty list) for anything not on it."
         )
     if page_texts:
-        layer = "\n\n".join(f"--- page {first_page + i} ---\n{t.strip()}" for i, t in enumerate(page_texts))
+        numbers = pages or range(first_page, first_page + len(page_texts))
+        pairs = zip(numbers, page_texts, strict=True)
+        layer = "\n\n".join(f"--- page {number} ---\n{page.strip()}" for number, page in pairs)
         text += f"\n\nText layer of the document (may be incomplete; trust the images):\n{layer}"
     return text
 
@@ -112,11 +122,28 @@ def cut_off_table(partial: dict, schema: dict, raw: str = "") -> str | None:
     if not partial and not opened:
         return None
     name = list(partial)[-1] if partial else opened.group(1)
-    node = (prepare_schema(schema).get("properties") or {}).get(name)
-    if not isinstance(node, dict) or "array" not in _types(node):
-        return None
-    items = _resolve(node.get("items") or {}, schema)
-    return name if "object" in _types(items) or "properties" in items else None
+    return name if name in record_lists(schema) else None
+
+
+def record_lists(schema: dict) -> list[str]:
+    """The top-level properties the schema declares lists of records (arrays of objects)."""
+    names = []
+    for name, node in (prepare_schema(schema).get("properties") or {}).items():
+        if isinstance(node, dict) and "array" in _types(node):
+            items = _resolve(node.get("items") or {}, schema)
+            if "object" in _types(items) or "properties" in items:
+                names.append(name)
+    return names
+
+
+# Pages at each end of a document too long for one request that are shown for its fields outside
+# tables (titles, parties, dates and totals are usually printed there).
+EDGE_PAGES = 2
+
+
+def edge_pages(count: int) -> list[int]:
+    """The page numbers of the first and last EDGE_PAGES pages of a `count`-page document."""
+    return sorted({*range(1, min(EDGE_PAGES, count) + 1), *range(max(1, count - EDGE_PAGES + 1), count + 1)})
 
 
 def _types(node: dict) -> set[str]:
@@ -641,10 +668,10 @@ def page_output_cap(text: str) -> int | None:
     return max(1024, PAGE_TOKENS_PER_CHAR * chars) if chars >= 200 else None
 
 
-def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens=None):
-    """One request for the whole document (output limited to `max_tokens` when given). A request
-    too long for the model's window is retried with smaller images (two thirds of the resolution,
-    down to 72 DPI)."""
+def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens=None, pages=None):
+    """One request for the whole document, or for the listed `pages` (numbers from 1), with output
+    limited to `max_tokens` when given. A request too long for the model's window is retried with
+    smaller images (two thirds of the resolution, down to 72 DPI)."""
     import hashlib
 
     from docextract.cited import CitedTask
@@ -652,13 +679,19 @@ def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_to
 
     while True:
         images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
+        count = len(images)
+        shown = texts
+        if pages:
+            images = [images[number - 1] for number in pages]
+            shown = tuple(texts[number - 1] for number in pages) if texts else ()
         identity = {
             "protocol": "oneshot/1",
             "schema": schema,
             "backend": backend.identity,
             "images": [hashlib.sha256(path.read_bytes()).hexdigest() for path in images],
-            "texts": digest(texts),
+            "texts": digest(shown),
             **({"max_tokens": max_tokens} if max_tokens else {}),
+            **({"pages": list(pages)} if pages else {}),
         }
         task = CitedTask(
             task_id=digest(identity),
@@ -666,8 +699,10 @@ def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_to
             units=(),
             page_images=tuple(str(path) for path in images),
             protocol="oneshot",
-            page_texts=texts,
+            page_texts=shown,
             max_tokens=max_tokens,
+            page_numbers=tuple(pages or ()),
+            page_count=count if pages else None,
         )
         generation = backend.generate_cited(task)  # a batch run's store raises Pending here
         if generation.finish_reason != "input_limit" or dpi <= 72:
@@ -685,32 +720,50 @@ REST_MAX_TOKENS = 2048
 
 
 def _answer(
-    document, schema, snapshot, texts, store, dpi, backend, label="document", depth=0, max_tokens=None
+    document,
+    schema,
+    snapshot,
+    texts,
+    store,
+    dpi,
+    backend,
+    label="document",
+    depth=0,
+    max_tokens=None,
+    pages=None,
 ):
-    """The answer to `schema`, every request it took as (label, generation, cut-off handled), and
-    the whole-document request's task.
+    """The answer to `schema`, every request it took as (label, generation, read by pages), and the
+    whole-document request's task.
 
-    An answer cut off at the output limit while writing a top-level list of records (a table longer
-    than one answer can hold) is completed by reading that list page by page: each request shows one
-    page image and its text, the records of all pages are kept in page order, identical ones
-    included, and rows continued across a page break get their group's labels (`carry_forward`).
-    (Adding the end of the previous page as context changed nothing but added duplicated rows.)
-    Fields the cut-off answer never reached are asked for again over the whole document, which may
-    split in turn.
+    Tables are read page by page when one request cannot hold them: an answer cut off at the output
+    limit while writing a top-level list of records completes that list, and a document too long for
+    one request even with small images reads all its top-level lists of records. Each page request
+    shows one page image and its text; the records of all pages are kept in page order, identical
+    ones included, and rows continued across a page break get their group's labels (`carry_forward`).
+    (Adding the end of the previous page as context changed nothing but added duplicated rows.) The
+    other fields are asked for again: over the whole document after a cut-off answer (which may split
+    in turn), or from its first and last pages when the document does not fit (`edge_pages`).
     """
     import hashlib
 
     from docextract.cited import CitedTask, Pending
     from docextract.contracts import digest
 
-    task, generation = _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens)
+    task, generation = _ask_document(
+        document, schema, snapshot, texts, store, dpi, backend, max_tokens, pages
+    )
     partial = parse_answer(generation.raw_text)
-    cut = generation.finish_reason == "length" and depth < 3
-    table = cut_off_table(partial, schema, generation.raw_text) if cut else None
-    if table is None:
+    too_long = generation.finish_reason == "input_limit" and depth == 0
+    if too_long:
+        tables = record_lists(schema)
+    elif generation.finish_reason == "length" and depth < 3:
+        tables = [name for name in [cut_off_table(partial, schema, generation.raw_text)] if name]
+    else:
+        tables = []
+    if not tables:
         return partial, [(label, generation, False)], task
     prepared = prepare_schema(schema)
-    rows = split_schema(prepared, [table])
+    rows = split_schema(prepared, tables)
     images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
     bare = [index for index in range(len(images)) if not texts or len(texts[index].strip()) < 200]
     if bare and dpi < SCAN_PAGE_DPI:
@@ -720,7 +773,7 @@ def _answer(
         )
         images = [sharp[index] if index in bare else image for index, image in enumerate(images)]
     pending: list[str] = []
-    pages = []
+    answered = []
     steps = [(label, generation, True)]
     for index, image in enumerate(images):
         own = (texts[index],) if texts else ()
@@ -753,13 +806,16 @@ def _answer(
             except Pending as waiting:  # a batch run queues every page at once
                 pending.extend(waiting.task_ids)
                 break
-            if answer.finish_reason == "length" and limit is not None:
+            # Asked again uncapped only when the page's own cap cut it off; a cut-off below the cap
+            # came from the engine's limit, which a second request would meet again.
+            reached = limit is not None and (answer.output_tokens or 0) >= limit
+            if answer.finish_reason == "length" and reached:
                 steps.append((f"page {index + 1} (capped)", answer, True))
                 continue
-            pages.append((index, answer))
+            answered.append((index, answer))
             break
-    data = {key: value for key, value in partial.items() if key != table}
-    missing = [key for key in prepared["properties"] if key != table and key not in partial]
+    data = {key: value for key, value in partial.items() if key not in tables}
+    missing = [key for key in prepared["properties"] if key not in tables and key not in partial]
     if missing:
         try:
             rest, more, _ = _answer(
@@ -775,6 +831,7 @@ def _answer(
                 max_tokens=None
                 if any("array" in _types(_resolve(prepared["properties"][key], prepared)) for key in missing)
                 else REST_MAX_TOKENS,
+                pages=edge_pages(len(images)) if too_long else pages,
             )
             data.update(rest)
             steps += more
@@ -782,14 +839,18 @@ def _answer(
             pending.extend(waiting.task_ids)
     if pending:
         raise Pending(pending)
-    found: list[list] = [[] for _ in images]
-    for index, answer in pages:
+    found = {table: [[] for _ in images] for table in tables}
+    for index, answer in answered:
         steps.append((f"page {index + 1}", answer, False))
-        records = parse_answer(answer.raw_text).get(table)
-        found[index] = records if isinstance(records, list) else []
-    if texts:
-        found = carry_forward(found, list(texts), nullable_fields(prepared, table))
-    data[table] = [record for records in found for record in records]
+        parsed = parse_answer(answer.raw_text)
+        for table in tables:
+            records = parsed.get(table)
+            found[table][index] = records if isinstance(records, list) else []
+    for table in tables:
+        records = found[table]
+        if texts:
+            records = carry_forward(records, list(texts), nullable_fields(prepared, table))
+        data[table] = [record for page_records in records for record in page_records]
     return data, steps, task
 
 
@@ -810,9 +871,9 @@ def extract_oneshot(
 
     A request too long for the model's window is retried with smaller images (two thirds of the
     resolution, down to 72 DPI). An answer cut off at the output limit while writing a top-level list
-    of records is completed page by page (`_answer`). If the request still does not fit, or an answer
-    cut off elsewhere cannot be completed that way, `fallback()` (the windowed pipeline) answers
-    instead when given.
+    of records is completed page by page, and a document that still does not fit has its lists of
+    records read page by page (`_answer`). If it has none, or an answer cut off elsewhere cannot be
+    completed that way, `fallback()` (the windowed pipeline) answers instead when given.
     """
     import shutil
 
@@ -840,7 +901,7 @@ def extract_oneshot(
         return fallback()
     # A replay of a run that stopped before this document's answer: nothing was read, so nothing is
     # filled in (not even check boxes the schema defines as false when blank).
-    answered = generation.finish_reason not in ("not_stored", "input_limit")
+    answered = by_pages or generation.finish_reason not in ("not_stored", "input_limit")
     data = conform(data, schema) if answered else {}
     compiled = Schema(schema)
     try:
@@ -883,7 +944,7 @@ def extract_oneshot(
             unresolved.append(
                 UnresolvedItem(pointer="", reason=reason if step is generation else f"{label}: {reason}")
             )
-        elif step.finish_reason in ("not_stored", "input_limit"):
+        elif step.finish_reason in ("not_stored", "input_limit") and not handled:
             unresolved.append(
                 UnresolvedItem(pointer="", reason=f"{label} not answered ({step.finish_reason})")
             )

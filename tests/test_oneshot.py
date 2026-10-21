@@ -173,8 +173,9 @@ class OneShotModel:
         from docextract.models import GenerationResult
 
         self.tasks.append(task)
-        raw, finish = self.answers.pop(0)
-        return GenerationResult(raw_text=raw, finish_reason=finish, input_tokens=100, output_tokens=20)
+        raw, finish, *produced = self.answers.pop(0)
+        output = produced[0] if produced else 20
+        return GenerationResult(raw_text=raw, finish_reason=finish, input_tokens=100, output_tokens=output)
 
 
 def test_whole_document_answer_is_typed_and_located(tmp_path):
@@ -415,7 +416,7 @@ def test_a_page_cut_off_at_its_text_sized_cap_is_asked_again_uncapped(tmp_path):
     model = OneShotModel(
         [
             ('{"rows":[{"name":"Item 00"', "length"),
-            ('{"rows":[{"name":"Item 00","amount":1},{"name":"It', "length"),
+            ('{"rows":[{"name":"Item 00","amount":1},{"name":"It', "length", 10**6),  # its cap reached
             ('{"rows":[{"name":"Item 00","amount":1},{"name":"Item 01","amount":2}]}', "stop"),
         ]
     )
@@ -424,3 +425,68 @@ def test_a_page_cut_off_at_its_text_sized_cap_is_asked_again_uncapped(tmp_path):
     assert capped.max_tokens and capped.max_tokens >= 1024 and uncapped.max_tokens is None
     assert [row["name"] for row in result.data["rows"]] == ["Item 00", "Item 01"]
     assert not result.unresolved and result.usage.committed_tasks == 3
+
+    # Cut off below its cap, by the engine's own output limit: asking again would meet that limit too.
+    model = OneShotModel(
+        [
+            ('{"rows":[{"name":"Item 00"', "length"),
+            ('{"rows":[{"name":"Item 00","amount":1},{"name":"It', "length", 900),
+        ]
+    )
+    result = extract_oneshot(path, schema, workspace=tmp_path / "again", backend=model)
+    assert len(model.tasks) == 2 and [row["name"] for row in result.data["rows"]] == ["Item 00"]
+
+
+def _long_ledger_pdf(tmp_path):
+    from reportlab.pdfgen.canvas import Canvas
+
+    path = tmp_path / "long-ledger.pdf"
+    canvas = Canvas(str(path), invariant=1)
+    for number in range(1, 5):
+        if number == 1:
+            canvas.drawString(48, 760, "Ledger")
+        canvas.drawString(48, 730, f"R{number} {number * 10}")
+        canvas.showPage()
+    canvas.drawString(48, 730, "Total 100")
+    canvas.showPage()
+    canvas.save()
+    return path
+
+
+def test_a_document_too_long_for_one_request_reads_its_tables_page_by_page(tmp_path):
+    from docextract.oneshot import extract_oneshot
+    from docextract.remote import cited_messages
+
+    pages = [f'{{"rows":[{{"name":"R{n}","amount":{n * 10}}}]}}' for n in range(1, 5)] + ['{"rows":[]}']
+    model = OneShotModel(
+        [("", "input_limit")] * 3  # the whole document, at 150, 100 and 72 DPI
+        + [(answer, "stop") for answer in pages]
+        + [('{"title":"Ledger","total":100}', "stop")]
+    )
+    result = extract_oneshot(
+        _long_ledger_pdf(tmp_path),
+        LEDGER,
+        workspace=tmp_path / "run",
+        backend=model,
+        dpi=150,
+        fallback=lambda: "windowed",
+    )
+    assert result.data == {
+        "title": "Ledger",
+        "rows": [{"name": f"R{n}", "amount": n * 10} for n in range(1, 5)],
+        "total": 100,
+    }
+    *_, rest = model.tasks
+    assert list(rest.original_schema["properties"]) == ["title", "total"]
+    assert rest.page_numbers == (1, 2, 4, 5) and len(rest.page_images) == 4 and rest.page_count == 5
+    text = cited_messages(rest, "c", "oneshot")[0][1]["content"][-1]["text"]
+    assert "The images are pages 1, 2, 4 and 5 of a 5-page document" in text
+    assert "--- page 5 ---\nTotal 100" in text and "R3" not in text
+    assert not result.unresolved and result.usage.committed_tasks == 7
+
+
+def test_tables_and_edge_pages_of_a_long_document():
+    from docextract.oneshot import edge_pages, record_lists
+
+    assert record_lists(LEDGER) == ["rows"] and record_lists(INVOICE) == []
+    assert edge_pages(1) == [1] and edge_pages(3) == [1, 2, 3] and edge_pages(10) == [1, 2, 9, 10]

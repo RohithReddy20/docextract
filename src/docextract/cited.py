@@ -114,9 +114,10 @@ class CitedTask(Contract):
     protocol: Literal["cited", "values", "oneshot"] = "cited"
     # Each page's own PDF text, for a "oneshot" request.
     page_texts: tuple[str, ...] = ()
-    # A "oneshot" request for some pages of a document: the number of the first page shown and the
-    # document's page count.
+    # A "oneshot" request for some pages of a document: the number of the first page shown (or the
+    # numbers of all pages shown, when they are not consecutive) and the document's page count.
     first_page: int = 1
+    page_numbers: tuple[int, ...] = ()
     page_count: int | None = None
     # An output limit below the engine's own, for this request (None: the engine's).
     max_tokens: int | None = None
