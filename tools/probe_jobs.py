@@ -48,8 +48,21 @@ def split_schema(schema: dict, name: str) -> tuple[dict, dict]:
     return keep([name]), keep(others)
 
 
+def dataset_pdfs(data: Path, packet: str) -> dict[str, str]:
+    """Each case's PDF path inside the pinned ExtractBench dataset (for runners without the work
+    volume, such as Colab), from the packet's evaluation index; empty when the index is not fetched."""
+    index = data / f"index-{packet}.json"
+    if not index.exists():
+        return {}
+    return {
+        case["id"]: "docs/" + case["test_json"].removesuffix(".test.json") + ".pdf"
+        for case in json.loads(index.read_text())["cases"]
+    }
+
+
 def build(config: dict, data: Path) -> list[dict]:
     jobs = []
+    sources = dataset_pdfs(data, config["packet"])
     for case_id in config["ids"]:
         schema = json.loads((data / f"{case_id}.schema.json").read_text())
         prepared = add_additional_properties_false(promote_repeated_structure(schema))
@@ -61,6 +74,7 @@ def build(config: dict, data: Path) -> list[dict]:
                 "id": case_id,
                 "variant": method["name"],
                 "pdf": f"packets/{config['packet']}/inference/{case_id}.pdf",
+                "dataset_pdf": sources.get(case_id),
                 "system": method.get("system", DEFAULT_SYSTEM_PROMPT),
                 "user_text": user_text(prepared, instruction),
                 "dpi": method.get("dpi", 150),
