@@ -1,0 +1,25 @@
+README.md
+  s_eaf722cf290d93::t_34f16ea5f37ae6 57-60
+  s_eaf722cf290d93::t_0e3ca3fe1224ca 52-54
+  s_eaf722cf290d93::t_57bafc4abb8e41 55,61-62
+  s_eaf722cf290d93::t_d9ed265ec3527f 56
+docs/model-trials.md
+  s_eaf722cf290d93::t_34f16ea5f37ae6 229-246
+  s_eaf722cf290d93::t_87546c0aa64e50 211-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b5cdf4c0dec25bf7baaf3f9d3110280e8423d5cd",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
