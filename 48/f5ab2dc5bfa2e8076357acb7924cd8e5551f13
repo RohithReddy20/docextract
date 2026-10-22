@@ -1,0 +1,57 @@
+tests/test_cited.py
+  s_eaf722cf290d93::t_e9d47f562a5dd8 881-882
+  s_eaf722cf290d93::t_9ff26d5036546e 878-880,883-907
+tests/test_oneshot.py
+  s_eaf722cf290d93::t_5b4b65cb05f1ba 463,479,493,501
+  s_eaf722cf290d93::t_65a0800786f310 512-609
+  s_eaf722cf290d93::t_37a6ea2611a0b8 610-618,621,624-629
+  s_eaf722cf290d93::t_db062cff791594 636-678
+  s_eaf722cf290d93::t_6bce90b1ac566a 619-620,630-635
+  s_eaf722cf290d93::t_028094f1053c34 622-623
+tests/test_ocr.py
+  s_eaf722cf290d93::t_a77df604beb2f6 270-295
+src/docextract/oneshot.py
+  s_eaf722cf290d93::t_b68f41d12db78e 302-303
+  s_eaf722cf290d93::t_5f6b2c87386f27 1074,1079
+  s_eaf722cf290d93::t_a4e36ad445b944 925-932
+  s_eaf722cf290d93::t_f8d7d056cc1f72 430
+  s_eaf722cf290d93::t_daa0f7d0c59492 129-130,133-136,140-148
+  s_eaf722cf290d93::t_8fd40780229f2b 888-889,891
+  s_eaf722cf290d93::t_49fa0ffa8015f2 918,921,940,986,1080-1081,1109
+  s_eaf722cf290d93::t_6b9f8a05c98efd 892
+  s_eaf722cf290d93::t_5b4b65cb05f1ba 465-468
+  s_eaf722cf290d93::t_a6f9fbe02e6ac5 822-824,833-834,841,846-848,855,890
+  s_eaf722cf290d93::t_918029c47d4e9a 374-429,431-464,469-474
+  s_eaf722cf290d93::t_1adf282894710f 805-812,877,1024
+  s_eaf722cf290d93::t_21e10e06567ba3 944,949-950,968-985,987-998
+  s_eaf722cf290d93::t_cc728323b8e19b 829-832,842,852-854,856-857
+  s_eaf722cf290d93::t_56f36b3ec32c2d 783-798
+  s_eaf722cf290d93::t_9b32d464b5838c 851
+  s_eaf722cf290d93::t_260ea3b2818fbc 879-887,893
+  s_eaf722cf290d93::t_7a1b255e3ef79e 1041,1059-1061
+  s_eaf722cf290d93::t_864f97a6793ef8 149-150
+src/docextract/cited.py
+  s_eaf722cf290d93::t_f1ea29e006d73d 1018-1020
+  s_eaf722cf290d93::t_5d71286d0d1666 1172-1174
+  s_eaf722cf290d93::t_25f8bb60ea7a82 124-126,1102-1128
+  s_eaf722cf290d93::t_1d29d9394e98e3 1007,1030
+src/docextract/batch.py
+  s_eaf722cf290d93::t_7178074108255a 197-202
+  s_eaf722cf290d93::t_25f8bb60ea7a82 65,67-73,75-78,91-97,158,161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "48f5ab2dc5bfa2e8076357acb7924cd8e5551f13",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
