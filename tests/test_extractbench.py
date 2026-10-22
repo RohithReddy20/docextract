@@ -200,5 +200,8 @@ def test_official_scoring_tool_keeps_failures_in_the_population(tmp_path):
     report = score(evaluation, tmp_path / "results", "docextract_trial")
     rows = {row["id"]: row for row in report["cases"]}
     assert rows["good"]["extract_unified_value_f1"] == 1.0 and rows["good"]["result"] == "scored"
+    assert rows["good"]["fields"] == {"invoice_id": 1.0}
+    assert rows["good"]["cells"]["correct"] == rows["good"]["cells"]["expected"] == 1
     assert rows["lost"]["result"] == "missing"
     assert report["groups"]["all"]["value_f1"] == 0.5
+    assert score(evaluation, tmp_path / "results", "docextract_trial", workers=2)["cases"] == report["cases"]

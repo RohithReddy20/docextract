@@ -6,6 +6,8 @@ prediction. Means are unweighted over documents, as in the benchmark report.
 
 import argparse
 import json
+import os
+from concurrent.futures import ProcessPoolExecutor
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
@@ -54,73 +56,108 @@ def load_case(test_json: Path):
         return load_extract_test_case(test_json, source_file=test_json.with_name(stem + ".pdf"))
 
 
+_EVALUATOR = None
+
+
+def score_case(case: dict, evaluation: Path, results: Path, pipeline: str, details: Path | None) -> dict:
+    """One case's row: the official evaluator over its saved result (an empty prediction if none)."""
+    global _EVALUATOR
+    evaluator = _EVALUATOR = _EVALUATOR or ExtractEvaluator()
+    now = datetime.now(UTC)
+    test_case = load_case(evaluation / case["test_json"])
+    row = {"id": case["id"], "split": case["split"], "result": "missing"}
+    output = ExtractOutput(
+        example_id=case["id"], pipeline_name=pipeline, extracted_data={}, field_citations=[]
+    )
+    path = results / case["id"] / "result.json"
+    if path.exists():
+        try:
+            result = ExtractionResult.model_validate_json(path.read_text())
+            output = project_result(result, example_id=case["id"], pipeline_name=pipeline)
+            row.update(
+                result="scored",
+                status=result.completion.status,
+                schema_valid=result.validation.valid,
+                unresolved=len(result.unresolved),
+                rejected=result.coverage.rejected_proposals,
+                pages=len(result.snapshot.pages),
+                input_tokens=result.usage.input_tokens,
+                output_tokens=result.usage.output_tokens,
+                model_calls=result.usage.generated_attempts,
+            )
+        except (ValueError, KeyError) as error:
+            row["result"] = f"unreadable: {type(error).__name__}"
+    inference = InferenceResult(
+        request=InferenceRequest(
+            example_id=case["id"],
+            source_file_path=str(test_case.source_file_path)
+            if hasattr(test_case, "source_file_path")
+            else case["id"],
+            product_type="extract",
+        ),
+        pipeline_name=pipeline,
+        product_type="extract",
+        raw_output={},
+        output=output,
+        started_at=now,
+        completed_at=now,
+        latency_in_ms=0,
+    )
+    evaluated = evaluator.evaluate(inference, test_case)
+    metrics = {metric.metric_name: metric.value for metric in evaluated.metrics}
+    row.update({name: metrics.get(name) for name in HEADLINE})
+    # The evaluator's accuracy of each top-level field and its value and row counts (numbers
+    # only), to see where points go: values missing, wrong, or extra rows.
+    row["fields"] = {
+        metric.metric_name.removeprefix("field_accuracy_"): metric.value
+        for metric in evaluated.diagnostic_metrics or []
+        if metric.metric_name.startswith("field_accuracy_")
+    }
+    counts = {metric.metric_name: metric.metadata or {} for metric in evaluated.metrics}
+    cells = counts.get("extract_unified_value_f1", {})
+    rows_counted = counts.get("array_record_f1", {})
+    row["cells"] = {
+        "correct": cells.get("v_correct"),
+        "expected": cells.get("expected_cells"),
+        "predicted": cells.get("predicted_cells"),
+        "expected_rows": rows_counted.get("expected_rows"),
+        "predicted_rows": rows_counted.get("predicted_rows"),
+    }
+    if row["result"] == "scored":
+        # Alternative projection of the same saved result: absent nullable fields omitted, not null.
+        omitted = output.model_copy(update={"extracted_data": without_projected_nulls(result)})
+        variant = evaluator.evaluate(inference.model_copy(update={"output": omitted}), test_case)
+        values = {metric.metric_name: metric.value for metric in variant.metrics}
+        row["value_f1_nulls_omitted"] = values.get("extract_unified_value_f1")
+    if details is not None:
+        save_json(
+            details / f"{case['id']}.json",
+            {
+                "id": case["id"],
+                "predicted": output.extracted_data,
+                "expected": test_case.expected_output,
+                "metrics": {name: metrics.get(name) for name in HEADLINE},
+            },
+        )
+    return row
+
+
 def score(
-    evaluation: Path, results: Path, pipeline: str, details: Path | None = None, seen: set[str] | None = None
+    evaluation: Path,
+    results: Path,
+    pipeline: str,
+    details: Path | None = None,
+    seen: set[str] | None = None,
+    workers: int = 1,
 ) -> dict:
     index = json.loads((evaluation / "index.json").read_text())
-    evaluator = ExtractEvaluator()
-    now = datetime.now(UTC)
-    rows = []
-    for case in index["cases"]:
-        test_case = load_case(evaluation / case["test_json"])
-        row = {"id": case["id"], "split": case["split"], "result": "missing"}
-        output = ExtractOutput(
-            example_id=case["id"], pipeline_name=pipeline, extracted_data={}, field_citations=[]
-        )
-        path = results / case["id"] / "result.json"
-        if path.exists():
-            try:
-                result = ExtractionResult.model_validate_json(path.read_text())
-                output = project_result(result, example_id=case["id"], pipeline_name=pipeline)
-                row.update(
-                    result="scored",
-                    status=result.completion.status,
-                    schema_valid=result.validation.valid,
-                    unresolved=len(result.unresolved),
-                    rejected=result.coverage.rejected_proposals,
-                    pages=len(result.snapshot.pages),
-                    input_tokens=result.usage.input_tokens,
-                    output_tokens=result.usage.output_tokens,
-                    model_calls=result.usage.generated_attempts,
-                )
-            except (ValueError, KeyError) as error:
-                row["result"] = f"unreadable: {type(error).__name__}"
-        inference = InferenceResult(
-            request=InferenceRequest(
-                example_id=case["id"],
-                source_file_path=str(test_case.source_file_path)
-                if hasattr(test_case, "source_file_path")
-                else case["id"],
-                product_type="extract",
-            ),
-            pipeline_name=pipeline,
-            product_type="extract",
-            raw_output={},
-            output=output,
-            started_at=now,
-            completed_at=now,
-            latency_in_ms=0,
-        )
-        evaluated = evaluator.evaluate(inference, test_case)
-        metrics = {metric.metric_name: metric.value for metric in evaluated.metrics}
-        row.update({name: metrics.get(name) for name in HEADLINE})
-        if row["result"] == "scored":
-            # Alternative projection of the same saved result: absent nullable fields omitted, not null.
-            omitted = output.model_copy(update={"extracted_data": without_projected_nulls(result)})
-            variant = evaluator.evaluate(inference.model_copy(update={"output": omitted}), test_case)
-            values = {metric.metric_name: metric.value for metric in variant.metrics}
-            row["value_f1_nulls_omitted"] = values.get("extract_unified_value_f1")
-        rows.append(row)
-        if details is not None:
-            save_json(
-                details / f"{case['id']}.json",
-                {
-                    "id": case["id"],
-                    "predicted": output.extracted_data,
-                    "expected": test_case.expected_output,
-                    "metrics": {name: metrics.get(name) for name in HEADLINE},
-                },
-            )
+    work = [(case, evaluation, results, pipeline, details) for case in index["cases"]]
+    if workers > 1 and len(work) > 1:
+        # Documents are scored apart, in parallel; rows keep the index order.
+        with ProcessPoolExecutor(workers) as pool:
+            rows = list(pool.map(score_case, *zip(*work, strict=True)))
+    else:
+        rows = [score_case(*item) for item in work]
 
     def mean(name, cases):
         values = [row[name] for row in cases if row[name] is not None]
@@ -162,9 +199,10 @@ def main():
     parser.add_argument("--pipeline", default="docextract_trial")
     parser.add_argument("--details", type=Path, help="per-case predicted/expected dumps for dev analysis")
     parser.add_argument("--seen", type=Path, help="JSON list of case ids examined during development")
+    parser.add_argument("--workers", type=int, default=min(16, os.cpu_count() or 1), help="parallel scorers")
     args = parser.parse_args()
     seen = set(json.loads(args.seen.read_text())) if args.seen else None
-    report = score(args.evaluation, args.results, args.pipeline, args.details, seen)
+    report = score(args.evaluation, args.results, args.pipeline, args.details, seen, args.workers)
     save_json(args.output, report)
     print(json.dumps(report["groups"]))
 
