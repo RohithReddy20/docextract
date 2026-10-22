@@ -1,0 +1,24 @@
+src/docextract/oneshot.py
+  s_eaf722cf290d93::t_3780e406bcdb5c 684-685
+  s_eaf722cf290d93::t_d6b6b91e3cfb7c 671-679,683,690
+  s_eaf722cf290d93::t_eaa825d669c83a 719-720
+tests/test_oneshot.py
+  s_eaf722cf290d93::t_c1d996993f3426 492-494
+  s_eaf722cf290d93::t_1e069cf7d443b5 488-491,495-506
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "68e37ef768a38fed6445264ee5285add69107b71",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
