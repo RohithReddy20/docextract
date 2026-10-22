@@ -1,0 +1,32 @@
+manifests/colab/lists-1.json
+  s_eaf722cf290d93::t_c8b9e6f169d8df 1-36
+manifests/colab/long-2.json
+  s_eaf722cf290d93::t_8efbf0e86b5750 1-33
+manifests/colab/ocr-1.json
+  s_eaf722cf290d93::t_7a3f929c520219 1-58
+docs/model-trials.md
+  s_eaf722cf290d93::t_105675303983f3 309-323
+  s_eaf722cf290d93::t_e82212fc92423d 297-308
+  s_eaf722cf290d93::t_3e622b6a66d7f4 274-296,324-332
+manifests/colab/long-1.json
+  s_eaf722cf290d93::t_9ad8e9009e2778 1-32
+manifests/colab/out32-1.json
+  s_eaf722cf290d93::t_e558e9f0e16e63 18
+  s_eaf722cf290d93::t_05df3c5916f13d 1-17,19-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "793b9e769a866e693fe81c836c3edcb0b9a409c4",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
