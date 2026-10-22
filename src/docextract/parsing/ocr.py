@@ -252,6 +252,12 @@ class OcrFallbackParser:
         )
 
 
+def _blank_page():
+    from PIL import Image
+
+    return Image.new("RGB", (256, 256), "white")
+
+
 class DoctrRecognizer:
     """docTR (Apache-2.0) detection + recognition; loads weights, so remote workers only."""
 
@@ -263,6 +269,16 @@ class DoctrRecognizer:
         from doctr.models import ocr_predictor
 
         self.model = ocr_predictor(det_arch=det_arch, reco_arch=reco_arch, pretrained=True).to(device)
+        # A GPU image whose cuDNN libraries do not match (CUDNN_STATUS_SUBLIBRARY_VERSION_MISMATCH on
+        # a Colab G4 failed every page) reads without cuDNN: the same model, slower convolutions.
+        self.cudnn = True
+        if str(device).startswith("cuda"):
+            try:
+                self.read([_blank_page()])
+            except RuntimeError as error:
+                if "CUDNN" not in str(error).upper():
+                    raise
+                self.cudnn = False
         self.identity = {
             "engine": "doctr",
             "version": doctr.__version__,
@@ -276,8 +292,14 @@ class DoctrRecognizer:
 
     def read(self, images: list) -> list[list[dict]]:
         import numpy
+        import torch
 
-        result = self.model([numpy.asarray(image.convert("RGB")) for image in images])
+        enabled = torch.backends.cudnn.enabled
+        torch.backends.cudnn.enabled = enabled and getattr(self, "cudnn", True)
+        try:
+            result = self.model([numpy.asarray(image.convert("RGB")) for image in images])
+        finally:
+            torch.backends.cudnn.enabled = enabled
         pages = []
         for page in result.pages:
             words = []
