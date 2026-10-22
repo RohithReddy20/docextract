@@ -3,8 +3,8 @@
 Most sections below are small authored development diagnostics, not ExtractBench scores or evidence
 of a winning checkpoint. The ExtractBench development runs (first section) use 20 benchmark documents
 chosen by a fixed hash order without looking at answers; they are seen during development and must
-be reported as such. All model downloads and execution occurred in private Kaggle workers. No model
-was downloaded or loaded locally; Modal was unused.
+be reported as such. All model downloads and execution occurred on remote workers (Kaggle, Modal and
+Colab); no model was downloaded or loaded locally.
 
 ## ExtractBench development runs
 
@@ -251,6 +251,25 @@ are from the official `ExtractEvaluator` in a separate process.
   (+40%). Answers did not change: 39 of 40 byte-identical to c1's, all 1,055 rows found, 96.66% of
   fields right (c1 96.60%). The product's engine now takes `kv_cache_dtype` (`--kv-cache-dtype` in
   tools/extract_remote.py and the launchers). `manifests/probes/k1.json`.
+- **Full benchmark through the product (full-1, Colab).** All 370 documents with the current method
+  (`manifests/colab/full-1.json`): value F1 **0.913** (short 0.940, medium 0.855, long 0.850; final-v1
+  0.747: 0.834, 0.600, 0.370), grounded F1 0.530 (0.392), page F1 0.637 (0.527); the 292 documents
+  never looked at during development 0.914, the 78 seen 0.906. It started on two L4 VMs (halves
+  `--shard 0/2`, `1/2`), paused when the launching laptop slept, and finished on one G4 (RTX PRO
+  6000, 96 GB, FP8) from the stored answers: about 4,300 prompt and 2,000-3,600 output tokens/s at 32
+  answers, roughly 5-15 L4s. Found on the way: (1) holding the page images of 64 queued
+  whole-document requests nearly filled a 52 GB VM (now at most 192 images admitted); (2) a job
+  crashed in native code right after building a 466,296-token prompt, so a request the engine would
+  refuse at any resolution (more pages than it accepts, or text beyond 8 characters a token of its
+  window) is now refused before its prompt is built; (3) on the G4 the OCR model failed on every
+  scanned page (`CUDNN_STATUS_SUBLIBRARY_VERSION_MISMATCH` in that image), so 160 documents failed until
+  OCR learned to run without cuDNN when a blank page fails with it; (4) the official scorer counts a
+  field the answer leaves out as wrong where the key holds null, so every schema property an answer
+  leaves out is now written as null and a blank string read as null (on 33 finished documents with
+  local keys: 92.4 -> 94.5, none lower). Every document was then assembled with the same source and
+  scored on the VM. Largest remaining losses: a 13F filing answered with 32 of its 1,223 holdings and
+  a normal stop (no cut-off, so its table was not read page by page), GSA labor-category tables, and
+  composed fields in page-by-page reading (issuer plus security leg). `manifests/trials/full-1.json`.
 
 ## Native value generation, first smoke
 

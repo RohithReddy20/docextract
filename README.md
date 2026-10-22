@@ -35,12 +35,19 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
 - **Measured about ExtractBench** ([workload](manifests/workload-inventory.json)): 24% of its 4,869
   pages have no text layer and 130 of 370 documents are entirely image-only; schemas reach ~158K
   tokens (56 documents exceed 12K); 20 long documents hold most of the answer volume.
-- **ExtractBench, full benchmark (partial run, previous pipeline):** value F1 **0.747** over all 370
+- **ExtractBench, full benchmark (current method):** value F1 **0.913** over all 370 documents
+  (short 0.940, medium 0.855, long 0.850; the 292 documents never looked at during development
+  0.914), grounded F1 0.530 and page F1 0.637 ([record](manifests/trials/full-1.json)), with the
+  official evaluator. On ExtractBench's leaderboard (October 2026) that is 14th of 50 systems and
+  above every Qwen entry, including the benchmark's own one-shot run of the same model (Qwen3.5 9B:
+  0.861, long documents 0.322). Run on Colab GPUs (two L4s, then one G4), resumed from stored
+  answers after each interruption; every document was assembled and scored with the same source.
+- **Previous pipeline, partial full run:** value F1 0.747 over all 370
   documents (short 0.834, medium 0.600, long 0.370; the 299 documents never looked at during
   development 0.743). The run was cut short: 301 documents finished and score 0.819; 69 (mostly medium
   and long) did not finish ([record](manifests/trials/final-v1.json)). ExtractBench's own one-shot run of
   Qwen3.5-4B scores 82.4, which showed that the windowed text-first pipeline lost accuracy.
-- **Since then, measured on samples only (no further full run):** the whole-document method beat the
+- **Before the full run, measured on samples:** the whole-document method beat the
   previous pipeline on every sample ([details](docs/model-trials.md)). On 17 documents never used
   before, through the product pipeline with Qwen3.5-9B: 93.8 against 82.3 on the 14 that were answered
   before the time limit (short 93.9 vs 89.2, medium 93.4 vs 57.0;
