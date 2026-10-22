@@ -75,12 +75,12 @@ def evaluation_packet(ids: list[str], cache: Path) -> Path:
     return evaluation
 
 
-def arguments(config: dict) -> list[str]:
+def arguments(config: dict, engine: str = "vllm") -> list[str]:
     """tools/extract_remote.py's options for a run configuration (the GPU stage of final_run.py)."""
     units = config.get("max_window_units")
     return [
         "--engine",
-        "vllm",
+        engine,
         "--arm",
         config["arm"],
         "--dtype",
@@ -170,6 +170,9 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="build the packet only, without a GPU")
     parser.add_argument("--score", action="store_true", help="score this VM's documents at the end")
     parser.add_argument("--score-only", action="store_true", help="score the results already here")
+    parser.add_argument(
+        "--replay", action="store_true", help="re-assemble the stored answers with this source (no model)"
+    )
     args = parser.parse_args()
 
     started = time.time()
@@ -188,6 +191,11 @@ def main():
         return
     run = args.out / "run"
     run.mkdir(parents=True, exist_ok=True)
+    # A replay re-assembles every document from the run's stored answers, page parses and page
+    # images with this source tree, into its own folder, so changes after the model can be scored.
+    replay = ["--replay-from", str(run)] if args.replay else []
+    if args.replay:
+        run = args.out / "replay"
     command = [
         "python",
         "-u",
@@ -204,7 +212,8 @@ def main():
         # the lightest share, by pages and schema size), the same on every VM.
         "--shard",
         args.shard,
-        *arguments(config),
+        *arguments(config, "replay" if args.replay else "vllm"),
+        *replay,
     ]
     code = 0 if args.score_only else run_product(command, env, args.minutes, started)
     rows = answers(run, config["ids"])
@@ -212,8 +221,11 @@ def main():
     minutes = (time.time() - started) / 60
     print(f"{len(rows)} of {len(config['ids'])} documents finished in {minutes:.1f} minutes")
     if args.score or args.score_only:
-        # This VM's share (every document of it, finished or not: a missing result scores as empty).
-        mine = [row["id"] for row in json.loads((run / "summary.json").read_text())["cases"]]
+        # This VM's share (every document of it, finished or not: a missing result scores as empty):
+        # the whole configuration on a single VM, whichever documents its last job read.
+        whole = args.shard.split("/")[1] == "1"
+        summary = [] if whole else json.loads((run / "summary.json").read_text())["cases"]
+        mine = config["ids"] if whole else [row["id"] for row in summary]
         evaluation = evaluation_packet(mine, args.cache / "extractbench")
         command = ["python", "tools/score_extractbench.py", "--evaluation", str(evaluation)]
         command += ["--results", str(run), "--output", str(args.out / "score.json")]

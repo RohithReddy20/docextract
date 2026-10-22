@@ -254,6 +254,9 @@ def main():
     parser.add_argument("--score", action="store_true", help="score a product run on its VM at the end")
     parser.add_argument("--score-only", action="store_true", help="only score the results on the VM")
     parser.add_argument(
+        "--replay", action="store_true", help="re-assemble a product run's stored answers (no model)"
+    )
+    parser.add_argument(
         "--reuse", action="store_true", help="start on this run's VM from an earlier job (packages, model)"
     )
     args = parser.parse_args()
@@ -308,6 +311,7 @@ def main():
         *(["--shard", args.shard] if count > 1 else []),
         *(["--score"] if args.score else []),
         *(["--score-only"] if args.score_only else []),
+        *(["--replay"] if args.replay else []),
     ]
     # Setup and runner in a subshell that stops at the first failure; its exit code ends the log.
     command = (

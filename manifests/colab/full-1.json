@@ -1,5 +1,5 @@
 {
-  "note": "The whole benchmark (370 documents) through the product on two Colab L4 VMs (--shard 0/2 and 1/2): the image-first whole-document method (Qwen3.5-9B, FP8 weights), tables of documents too long for one request read page by page with their other fields from the first and last pages, and an FP8 KV cache (k1). Same settings as fresh-1 otherwise; 32 answers at once.",
+  "note": "The whole benchmark (370 documents) through the product: the image-first whole-document method (Qwen3.5-9B, FP8 weights), tables of documents too long for one request read page by page with their other fields from the first and last pages, and an FP8 KV cache (k1); 32 answers at once. Started on two Colab L4 VMs (--shard 0/2 and 1/2) and finished on one G4 (--shard 0/1, resumed from the stored answers); manifests/trials/full-1.json.",
   "name": "full-1",
   "arm": "c",
   "dtype": "bfloat16",
@@ -383,7 +383,7 @@
   "max_new_tokens": 16384,
   "max_model_len": 131072,
   "max_num_seqs": 32,
-  "gpu_memory_utilization": 0.92,
+  "gpu_memory_utilization": 0.85,
   "ocr": "doctr",
   "speculative_tokens": 2,
   "max_document_pages": 64,

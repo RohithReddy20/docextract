@@ -26,7 +26,7 @@ from probe_batch import answered, load_engine, request_key, run  # noqa: E402
 
 # Colab compute units per hour, as `colab usage` reported them while a VM of each kind ran
 # (2026-10-21; T4 and H100 from third-party measurements).
-UNITS_PER_HOUR = {"T4": 1.2, "L4": 1.54, "A100": 5.3, "H100": 15.0}
+UNITS_PER_HOUR = {"T4": 1.2, "L4": 1.54, "G4": 8.9, "A100": 5.3, "H100": 15.0}
 # GPUs with FP8 arithmetic (compute capability 8.9 or newer); on an A100 vLLM's FP8 kernel fails.
 FP8_GPUS = ("L4", "G4", "H100")
 NO_FP8 = "{} has no FP8 arithmetic: use an L4, G4 or H100, or --engine '{{\"quantization\": null}}'"
