@@ -1,0 +1,36 @@
+{
+ "note": "The documents whose handling changed after full-1, with full-1's stored answers: two 13F filings whose one-request answers listed 25 and 32 of 1,168 and 1,223 holdings (now read again page by page), six documents with optional lists of records (anyOf array/null) that full-1 sent to the windowed fallback (now read page by page), and one tax return whose schema alone is too long for one request (should still go to the fallback, with no page requests).",
+ "name": "lists-1",
+ "ids": [
+  "0f42f57983e000b5",
+  "7679774f996dcdf1",
+  "abfdb19cf6590220",
+  "fa1a37d3742eb148",
+  "c420f4d3e6c6cea9",
+  "ef9357c941583ab3",
+  "39768f2d6051ceb4",
+  "1cfc2a1c461a25a0",
+  "a4b555ea36a85a25"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 60,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 16384,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ]
+}

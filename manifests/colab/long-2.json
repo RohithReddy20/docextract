@@ -1,0 +1,33 @@
+{
+ "note": "As long-1 (documents too long for one request even with 72-DPI images, last shown by their text), but the first and last two pages keep their images, at the first resolution: in long-1 a purchase order shown by text alone lost its boxed form fields (0.943 -> 0.657). Four contracts, and two long fund reports with dev keys (59 and 72 pages, holdings read page by page) as a check that a giant table still is. Resumes from the stored answers; scored on the VM.",
+ "name": "long-2",
+ "ids": [
+  "fa1a37d3742eb148",
+  "c420f4d3e6c6cea9",
+  "39768f2d6051ceb4",
+  "1cfc2a1c461a25a0",
+  "cf78a11e82647957",
+  "2e3ac6d0fb0d3709"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 50,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 16384,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ]
+}

@@ -1,0 +1,58 @@
+{
+ "note": "Scanned documents with dev keys (21 short, 4 medium): the one-shot method as in full-1, generated afresh, against the same with each scanned page's OCR lines given as its text layer (ocr_text). Scored here with the dev keys; full-1's answers to the same documents show the run-to-run noise.",
+ "name": "ocr-1",
+ "ids": [
+  "0338c91c65a2c975",
+  "0605af596fb693bf",
+  "08ec88d2a94e1325",
+  "1286d0dd3e69807f",
+  "167ca9800b481f43",
+  "2feed6278bc03c8f",
+  "3888a81d7a6f95c1",
+  "53bf844c9545dabc",
+  "57fba04293b5ed6d",
+  "589c7a7ae4b76e9e",
+  "64dbbac9b38e6792",
+  "6cbc887d541ee4c1",
+  "7203e76d9a094233",
+  "775951ef0ccb944d",
+  "a699a9ca9e5f6824",
+  "b24ef1e834649bac",
+  "bab533b6980dafdb",
+  "bc56af96c64b8682",
+  "e46c32ea4af33997",
+  "f25b65c8a17bd37a",
+  "f697dcbe6b5158db",
+  "4df53ae7992b0cd1",
+  "7c4423de17379088",
+  "8cc8a79e7122d8a9",
+  "f8dff9e23b123092"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 45,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 16384,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "base",
+   "protocol": "oneshot",
+   "page_images": true
+  },
+  {
+   "name": "ocr",
+   "protocol": "oneshot",
+   "page_images": true,
+   "ocr_text": true
+  }
+ ]
+}

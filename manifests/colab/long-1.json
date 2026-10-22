@@ -1,0 +1,32 @@
+{
+ "note": "Documents too long for one request even with 72-DPI images: four contracts (66-95 pages) whose small line-item lists, read page by page in lists-1, took clause lists and repeated item numbers from other sections (two fell from 0.94 and 0.83 to 0.37 and 0.34), and a 114-page creditor list (7,554 rows) as a check that a giant table is still read page by page. Now the last attempt shows the pages that have a text layer by their text alone. Resumes from full-1 and lists-1's stored answers; scored on the VM.",
+ "name": "long-1",
+ "ids": [
+  "fa1a37d3742eb148",
+  "c420f4d3e6c6cea9",
+  "39768f2d6051ceb4",
+  "1cfc2a1c461a25a0",
+  "57152ea05aa844ef"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 50,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 16384,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ]
+}

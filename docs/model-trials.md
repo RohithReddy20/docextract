@@ -271,6 +271,65 @@ are from the official `ExtractEvaluator` in a separate process.
   a normal stop (no cut-off, so its table was not read page by page), GSA labor-category tables, and
   composed fields in page-by-page reading (issuer plus security leg). `manifests/trials/full-1.json`.
 
+- **Lists missed or given in part (lists-1, Colab L4).** Two causes found in full-1's answers.
+  (1) The product only recognized a list of records declared as a plain array, while 230 of the 370
+  schemas declare optional lists (`anyOf: [array, null]`): a document with such a list whose answer
+  was cut off, or that was too long for one request, went to the windowed fallback instead (24
+  documents, mean 0.881; 18 are tax returns whose 760K-character schema cannot fit one request and
+  stay there). Optional lists now count, and a document too long for one request asks for its fields
+  outside tables first, from its first and last pages; when even that is refused, the whole document
+  goes to the fallback before any page is read. (2) A complete answer can list part of a long table
+  and stop: two 13F filings were answered with 25 of 1,168 and 32 of 1,223 holdings. The product now
+  checks an answer's lists against the PDF's text (`partial_lists`): lines printed like a list's own
+  rows (the same kinds of tokens in the same order) that come from none of its records, on pages none
+  of its records come from, at least ten times its rows and 50 in all, have the list read again page
+  by page, and the pages' rows replace the answer's when there are more. Of 88 documents checked (73
+  answered in one request with lists spanning five or more pages, 15 long ones) it flags only the two
+  filings. On the nine documents whose handling changed (full-1's stored answers reused): the filings
+  0.052 -> 0.998 and 0.042 -> 0.998 (every row), a customs entry 0.825 -> 0.896, a 66-page contract
+  0.597 -> 0.943, another 0.703 -> 0.721, the tax return unchanged (fallback, no page read); but two
+  long contracts fell from 0.943 and 0.826 to 0.372 and 0.336 and a GSA price list from 0.551 to 0.467.
+  Read one page at a time, their small line-item lists took numbered clause lists and item numbers
+  repeated in other sections, and the price list took each labor category twice (its rate table and
+  its qualifications table); a page alone cannot show which table the schema means. Net +0.32 on the
+  benchmark mean. `manifests/colab/lists-1.json`.
+
+- **Long documents shown by their text (long-1, long-2, Colab L4).** A document too long for one
+  request even with 72-DPI images now gets one more whole-document request before any page is read
+  alone: pages with a text layer are shown by their text, and only the first and last two pages and
+  pages without text keep their images (at the first resolution). Four long contracts (66-95 pages,
+  5-70 line items), full-1 (windowed fallback) -> page by page (lists-1) -> text only (long-1) -> text
+  plus first and last pages (long-2): 0.597 -> 0.943 -> 0.855 -> **0.962**; 0.703 -> 0.721 -> 0.807 ->
+  **0.956**; 0.826 -> 0.336 -> 0.870 -> **0.891**; 0.943 -> 0.372 -> 0.657 -> 0.615. With no page image at
+  all, a purchase order's boxed fields were misread (its order number joined to the contract number,
+  a wrong date); with the first pages' images they were all right, but that answer listed its two
+  line items and left out three funding sub-items. Two long fund reports (59 and 72 pages) whose
+  holdings are read page by page did not change. `manifests/colab/long-1.json`, `long-2.json`.
+
+- **Room for 32K-token answers (out32-1, Colab L4).** Eight medium documents whose whole-document
+  answers full-1 cut off at 16,384 output tokens and then read page by page (fund holdings,
+  communications logs, an awards schedule; 148-340 rows), where reading pages alone put sector
+  headings in the asset-class field, read headings and totals as rows, and lost the run of rows across
+  pages. With room for 32,768 tokens seven answered in one request (22-28K tokens): 0.686 -> 0.997,
+  0.793 -> 0.999, 0.728 -> 0.984, 0.778 -> 0.989, 0.756 -> 0.973, 0.762 -> 0.945, and the awards
+  schedule 0.710 -> 0.533 (the right number of rows, values written differently); the eighth (340 rows)
+  was cut off again and read page by page as before (0.679 -> 0.695). +0.33 on the benchmark mean. Long
+  answers next to long prompts ran slowly on the L4 (a few tokens per second per answer with three at
+  once), so such runs belong on a larger GPU. Raising the engine's output limit changes the identity
+  of every request, so the answer store now also accepts an answer stored under the same engine with a
+  lower limit (`--legacy-max-new-tokens`) unless that limit cut it off: a finished greedy answer would
+  not change, a refusal still applies with less room left for the prompt, and only cut-off answers
+  are asked again (121 of 21,610 stored). `manifests/colab/out32-1.json`.
+
+- **OCR text for scanned pages (ocr-1, Colab L4).** The model sees each scanned page as an image only
+  (the text layer it is given is the PDF's own). With `ocr_text`, a page whose text came from OCR shows
+  its OCR lines as its text. On 25 scanned documents with dev keys (21 short, 4 medium), generated
+  afresh in one session with and without: 24 finished both, value F1 0.911 -> **0.926** (full-1's
+  answers 0.917); short documents +0.8 points on average, the three medium ones +5.8, +9.2 and +3.6
+  (a 4-page remittance whose claim number the model had read with one zero too few: 0.776 -> 0.879).
+  One form fell 0.958 -> 0.823: the OCR misread its register number and split a casing row, and the
+  model followed the text instead of the image. `manifests/colab/ocr-1.json`.
+
 ## Native value generation, first smoke
 
 Frozen source archive: `bf9ba39901f69ae2eea477fa82464874d6ab10b7d86976a5e696b0ebc6017dce`.

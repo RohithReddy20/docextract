@@ -1,0 +1,35 @@
+{
+ "note": "Medium documents whose whole-document answers full-1 cut off at the 16,384-token output limit and then read page by page (fund holdings, awards, communications; 148-252 rows), losing heading levels across pages and reading headings and totals as rows: the same method with room for 32,768 output tokens, so their tables fit one answer. Scored on the VM.",
+ "name": "out32-1",
+ "ids": [
+  "79ea7bff0e456f2c",
+  "94e988112fb758c2",
+  "0c97bfb1972b1ea6",
+  "12487fee62426b49",
+  "3a5fbb8218ea32a1",
+  "8a1e22f51616b079",
+  "81a2557b70440857",
+  "9c37df6b0d0da9aa"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 90,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 32768,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ]
+}
