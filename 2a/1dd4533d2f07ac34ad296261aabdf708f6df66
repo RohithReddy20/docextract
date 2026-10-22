@@ -1,0 +1,30 @@
+manifests/colab/full-1.json
+  s_eaf722cf290d93::t_2abe73a15dbfd3 386
+  s_eaf722cf290d93::t_cc2b685560ff13 2
+tools/colab_probe.py
+  s_eaf722cf290d93::t_d2ae3a167c74cb 257
+  s_eaf722cf290d93::t_11856e029c3497 256,258,314
+runtimes/colab/extract.py
+  s_eaf722cf290d93::t_db1d595b52d09e 78,83
+  s_eaf722cf290d93::t_a5dc2f29066743 173-175
+  s_eaf722cf290d93::t_9d0b9f1bbdd4e3 194-198,215-216
+  s_eaf722cf290d93::t_bfc5aab5c43bd1 224-228
+runtimes/colab/probe.py
+  s_eaf722cf290d93::t_c6652ad7922e71 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2a1dd4533d2f07ac34ad296261aabdf708f6df66",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
