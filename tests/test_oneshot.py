@@ -485,6 +485,25 @@ def test_a_document_too_long_for_one_request_reads_its_tables_page_by_page(tmp_p
     assert not result.unresolved and result.usage.committed_tasks == 7
 
 
+def test_a_request_the_engine_would_refuse_at_any_resolution_is_never_sent(tmp_path):
+    from docextract.oneshot import beyond_limits, extract_oneshot
+
+    pages = [f'{{"rows":[{{"name":"R{n}","amount":{n * 10}}}]}}' for n in range(1, 5)] + ['{"rows":[]}']
+    model = OneShotModel(
+        [(answer, "stop") for answer in pages] + [('{"title":"Ledger","total":100}', "stop")]
+    )
+    # Five pages for an engine that accepts four page images: no whole-document request is made.
+    model.identity = {**model.identity, "generation": {"max_images": 4, "max_model_len": 1000}}
+    result = extract_oneshot(
+        _long_ledger_pdf(tmp_path), LEDGER, workspace=tmp_path / "run", backend=model, dpi=150
+    )
+    assert result.data["rows"] == [{"name": f"R{n}", "amount": n * 10} for n in range(1, 5)]
+    assert [len(task.page_images) for task in model.tasks] == [1, 1, 1, 1, 1, 4]
+    limits = {"generation": {"max_images": 4, "max_model_len": 1000}}
+    assert beyond_limits([1] * 3, ("x" * 8001,), limits) and not beyond_limits([1] * 3, ("x" * 8000,), limits)
+    assert not beyond_limits([1] * 9, ("x" * 9000,), {"backend": "without limits"})
+
+
 def test_tables_and_edge_pages_of_a_long_document():
     from docextract.oneshot import edge_pages, record_lists
 

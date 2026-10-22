@@ -668,14 +668,26 @@ def page_output_cap(text: str) -> int | None:
     return max(1024, PAGE_TOKENS_PER_CHAR * chars) if chars >= 200 else None
 
 
+def beyond_limits(images: list, texts: tuple, identity: dict) -> bool:
+    """Whether the engine named by `identity` would refuse a request showing `images` and `texts`
+    whatever their resolution: more page images than it accepts, or text alone longer than its window
+    (taking at most eight characters a token)."""
+    limits = identity.get("generation") or {}
+    pages, window = limits.get("max_images"), limits.get("max_model_len")
+    return bool(pages and len(images) > pages) or bool(window and sum(map(len, texts)) > 8 * window)
+
+
 def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens=None, pages=None):
     """One request for the whole document, or for the listed `pages` (numbers from 1), with output
     limited to `max_tokens` when given. A request too long for the model's window is retried with
-    smaller images (two thirds of the resolution, down to 72 DPI)."""
+    smaller images (two thirds of the resolution, down to 72 DPI); one the engine would refuse at any
+    resolution is refused here, without building its prompt (a run crashed in native code right after
+    building one of 466,296 tokens)."""
     import hashlib
 
     from docextract.cited import CitedTask
     from docextract.contracts import digest
+    from docextract.models import GenerationResult
 
     while True:
         images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
@@ -704,6 +716,8 @@ def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_to
             page_numbers=tuple(pages or ()),
             page_count=count if pages else None,
         )
+        if beyond_limits(images, shown, backend.identity):
+            return task, GenerationResult(raw_text="", finish_reason="input_limit")
         generation = backend.generate_cited(task)  # a batch run's store raises Pending here
         if generation.finish_reason != "input_limit" or dpi <= 72:
             return task, generation
