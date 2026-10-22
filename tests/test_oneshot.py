@@ -54,14 +54,14 @@ def test_conform_types_values_and_fills_two_state_checkboxes():
         "amount": 41000.0,
         "count": "1,200",
         "kind": "gas",
-        "rows": [{"qty": "2.5", "ok": "Yes"}],
+        "rows": [{"qty": "2.5", "ok": "Yes"}, {"qty": " "}],
         "maybe": None,
     }
     assert conform(answer, schema) == {
         "amount": "41000",
         "count": 1200,
         "kind": "Gas",
-        "rows": [{"qty": 2.5, "ok": True}],
+        "rows": [{"qty": 2.5, "ok": True}, {"qty": None, "ok": None}],
         "maybe": None,
         "final": False,
     }
