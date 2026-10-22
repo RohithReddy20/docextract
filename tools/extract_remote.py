@@ -26,6 +26,7 @@ VARIANT_KEYS = {
     "page_image_side_split",
     "max_window_pages",
     "oneshot_dpi",
+    "ocr_text",
 }
 
 
@@ -206,6 +207,13 @@ def main():
     parser.add_argument("--max-window-chars", type=int, default=16000)
     parser.add_argument("--max-input-tokens", type=int, default=8192)
     parser.add_argument("--max-new-tokens", type=int, default=2048)
+    parser.add_argument(
+        "--legacy-max-new-tokens",
+        type=int,
+        nargs="*",
+        default=[],
+        help="earlier output limits of this engine whose stored answers stand unless they were cut off",
+    )
     parser.add_argument("--max-model-len", type=int, default=16384)
     parser.add_argument("--max-num-seqs", type=int, default=64)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.9)
@@ -344,6 +352,12 @@ def main():
     ]
     if args.engine in ("vllm", "replay"):
         # Windows stream through one continuously batched engine; answers are stored as they finish.
+        # The same engine with a lower output limit: answers it finished stand (`GenerationStore`).
+        legacy = tuple(
+            {**engine.identity, "generation": {**engine.identity["generation"], "max_new_tokens": limit}}
+            for limit in args.legacy_max_new_tokens
+            if limit < args.max_new_tokens
+        )
         run_batch(
             jobs,
             root=args.output,
@@ -351,6 +365,7 @@ def main():
             on_result=record,
             batch_size=256,
             parser=parser,
+            legacy_identities=legacy,
             **options,
         )
     else:

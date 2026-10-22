@@ -107,32 +107,39 @@ def arguments(config: dict, engine: str = "vllm") -> list[str]:
         *(["--quantization", config["quantization"]] if config.get("quantization") else []),
         *(["--kv-cache-dtype", kv] if (kv := config.get("kv_cache_dtype")) else []),
         *(["--max-document-pages", str(pages)] if (pages := config.get("max_document_pages")) else []),
+        *(
+            ["--legacy-max-new-tokens", *map(str, old)]
+            if (old := config.get("legacy_max_new_tokens"))
+            else []
+        ),
     ]
 
 
-def answers(run: Path, ids: list[str]) -> list[dict]:
-    """Each finished document's extracted data as one answer for tools/score_probe.py."""
+def answers(run: Path, ids: list[str], variants: list[str] = ("",)) -> list[dict]:
+    """Each finished document's extracted data as one answer for tools/score_probe.py, per prompt
+    variant (an unnamed variant's documents are directly under `run`, as "product")."""
     rows = []
-    for case_id in ids:
-        path = run / case_id / "result.json"
-        if not path.exists():
-            continue
-        result = json.loads(path.read_text())
-        rows.append(
-            {
-                "id": case_id,
-                "variant": "product",
-                "batch": 0,
-                "batches": 1,
-                "finish_reason": "stop",
-                "raw_text": json.dumps(result["data"]),
-                "input_tokens": result["usage"]["input_tokens"],
-                "output_tokens": result["usage"]["output_tokens"],
-                "status": result["completion"]["status"],
-                "unresolved": [item["reason"] for item in result["unresolved"]][:20],
-            }
-        )
+    for variant in variants:
+        for case_id in ids:
+            path = run / variant / case_id / "result.json"
+            if path.exists():
+                rows.append(_answer(json.loads(path.read_text()), case_id, variant or "product"))
     return rows
+
+
+def _answer(result: dict, case_id: str, variant: str) -> dict:
+    return {
+        "id": case_id,
+        "variant": variant,
+        "batch": 0,
+        "batches": 1,
+        "finish_reason": "stop",
+        "raw_text": json.dumps(result["data"]),
+        "input_tokens": result["usage"]["input_tokens"],
+        "output_tokens": result["usage"]["output_tokens"],
+        "status": result["completion"]["status"],
+        "unresolved": [item["reason"] for item in result["unresolved"]][:20],
+    }
 
 
 def run_product(command: list[str], env: dict, minutes: float | None, started: float) -> int:
@@ -216,7 +223,7 @@ def main():
         *replay,
     ]
     code = 0 if args.score_only else run_product(command, env, args.minutes, started)
-    rows = answers(run, config["ids"])
+    rows = answers(run, config["ids"], [variant.get("name", "") for variant in config["variants"]])
     (args.out / "answers.json").write_text(json.dumps({"outputs": rows}, indent=1))
     minutes = (time.time() - started) / 60
     print(f"{len(rows)} of {len(config['ids'])} documents finished in {minutes:.1f} minutes")

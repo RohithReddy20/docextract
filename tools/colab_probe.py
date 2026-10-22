@@ -16,12 +16,14 @@ set COLAB_HOME to keep this project's account apart (`HOME=$COLAB_HOME colab usa
 from __future__ import annotations
 
 import argparse
+import gzip
 import io
 import json
 import math
 import os
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -135,6 +137,17 @@ print({MARK!r} + json.dumps({{"files": len(os.listdir({REMOTE!r}))}}))
 """
 
 
+def unpack_store_code(path: str) -> str:
+    """Unpack an answer store uploaded compressed (`path` + ".gz") in place."""
+    return f"""
+import gzip, json, os, shutil
+with gzip.open({path!r} + ".gz", "rb") as source, open({path!r}, "wb") as target:
+    shutil.copyfileobj(source, target)
+os.remove({path!r} + ".gz")
+print({MARK!r} + json.dumps({{"bytes": os.path.getsize({path!r})}}))
+"""
+
+
 def job_code(command: str, out: str) -> str:
     """Setup plus the runner, logging to run.log, in a kernel cell that waits for them to end.
 
@@ -199,7 +212,14 @@ def launch(
         colab("upload", "-s", session, str(archive), "/content/source.tar.gz", capture=True)
     retry(lambda: remote(session, unpack_code(out)))
     if args.resume and (local / store).exists():
-        colab("upload", "-s", session, str(local / store), f"{out}/{store}", capture=True)
+        # Sent compressed and unpacked there: a 39 MB store (4 MB compressed) was still uploading
+        # after five minutes.
+        with tempfile.TemporaryDirectory() as scratch:
+            packed = Path(scratch) / "store.gz"
+            with (local / store).open("rb") as source, gzip.open(packed, "wb") as target:
+                shutil.copyfileobj(source, target)
+            colab("upload", "-s", session, str(packed), f"{out}/{store}.gz", capture=True, timeout=1200)
+        retry(lambda: remote(session, unpack_store_code(f"{out}/{store}")))
     (local / "colab-run.json").write_text(
         json.dumps({"revision": revision(), "gpu": None if args.dry_run else args.gpu, "rate": rate})
     )
