@@ -460,8 +460,8 @@ def test_a_document_too_long_for_one_request_reads_its_tables_page_by_page(tmp_p
     pages = [f'{{"rows":[{{"name":"R{n}","amount":{n * 10}}}]}}' for n in range(1, 5)] + ['{"rows":[]}']
     model = OneShotModel(
         [("", "input_limit")] * 3  # the whole document, at 150, 100 and 72 DPI
+        + [('{"title":"Ledger","total":100}', "stop")]  # the other fields, before any page
         + [(answer, "stop") for answer in pages]
-        + [('{"title":"Ledger","total":100}', "stop")]
     )
     result = extract_oneshot(
         _long_ledger_pdf(tmp_path),
@@ -476,7 +476,7 @@ def test_a_document_too_long_for_one_request_reads_its_tables_page_by_page(tmp_p
         "rows": [{"name": f"R{n}", "amount": n * 10} for n in range(1, 5)],
         "total": 100,
     }
-    *_, rest = model.tasks
+    rest = model.tasks[3]
     assert list(rest.original_schema["properties"]) == ["title", "total"]
     assert rest.page_numbers == (1, 2, 4, 5) and len(rest.page_images) == 4 and rest.page_count == 5
     text = cited_messages(rest, "c", "oneshot")[0][1]["content"][-1]["text"]
@@ -490,7 +490,7 @@ def test_a_request_the_engine_would_refuse_at_any_resolution_is_never_sent(tmp_p
 
     pages = [f'{{"rows":[{{"name":"R{n}","amount":{n * 10}}}]}}' for n in range(1, 5)] + ['{"rows":[]}']
     model = OneShotModel(
-        [(answer, "stop") for answer in pages] + [('{"title":"Ledger","total":100}', "stop")]
+        [('{"title":"Ledger","total":100}', "stop")] + [(answer, "stop") for answer in pages]
     )
     # Five pages for an engine that accepts four page images: no whole-document request is made.
     model.identity = {**model.identity, "generation": {"max_images": 4, "max_model_len": 1000}}
@@ -498,7 +498,7 @@ def test_a_request_the_engine_would_refuse_at_any_resolution_is_never_sent(tmp_p
         _long_ledger_pdf(tmp_path), LEDGER, workspace=tmp_path / "run", backend=model, dpi=150
     )
     assert result.data["rows"] == [{"name": f"R{n}", "amount": n * 10} for n in range(1, 5)]
-    assert [len(task.page_images) for task in model.tasks] == [1, 1, 1, 1, 1, 4]
+    assert [len(task.page_images) for task in model.tasks] == [4, 1, 1, 1, 1, 1]
     limits = {"generation": {"max_images": 4, "max_model_len": 1000}}
     assert beyond_limits([1] * 3, ("x" * 8001,), limits) and not beyond_limits([1] * 3, ("x" * 8000,), limits)
     assert not beyond_limits([1] * 9, ("x" * 9000,), {"backend": "without limits"})
@@ -509,3 +509,170 @@ def test_tables_and_edge_pages_of_a_long_document():
 
     assert record_lists(LEDGER) == ["rows"] and record_lists(INVOICE) == []
     assert edge_pages(1) == [1] and edge_pages(3) == [1, 2, 3] and edge_pages(10) == [1, 2, 9, 10]
+
+
+HOLDINGS = {
+    "type": "object",
+    "properties": {
+        "filer": {"type": "string"},
+        "holdings": {"anyOf": [{"type": "array", "items": {"$ref": "#/$defs/Holding"}}, {"type": "null"}]},
+    },
+    "$defs": {
+        "Holding": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "cusip": {"type": ["string", "null"]},
+                "value": {"type": "integer"},
+                "shares": {"type": "integer"},
+            },
+            "required": ["name", "value", "shares"],
+        }
+    },
+}
+
+
+def _holding(n):
+    return {"name": f"HOLD{n:03d}", "cusip": f"{n:05d}X{n:03d}", "value": n * 1000 + 7, "shares": n * 3}
+
+
+def _holdings_pdf(tmp_path, pages=3, rows=30):
+    """A filing listing `pages` x `rows` holdings, one printed line each."""
+    from reportlab.pdfgen.canvas import Canvas
+
+    path = tmp_path / "holdings.pdf"
+    canvas = Canvas(str(path), invariant=1)
+    for page in range(pages):
+        for line in range(rows):
+            h = _holding(page * rows + line + 1)
+            text = f"{h['name']} ACME {h['cusip']} {h['value']:,} {h['shares']} SH SOLE"
+            canvas.drawString(48, 760 - 22 * line, text)
+        canvas.showPage()
+    canvas.save()
+    return path
+
+
+def test_lists_that_may_be_null_are_lists_of_records():
+    from docextract.oneshot import nullable_fields, record_lists
+
+    assert record_lists(HOLDINGS) == ["holdings"]
+    assert nullable_fields(HOLDINGS, "holdings") == {"cusip"}
+
+
+def test_a_list_given_only_in_part_is_judged_from_the_rows_printed_on_other_pages(tmp_path):
+    from docextract.oneshot import partial_lists, pdf_page_texts
+
+    texts = pdf_page_texts(_holdings_pdf(tmp_path))
+    every = [_holding(n) for n in range(1, 91)]
+    assert partial_lists({"filer": "F", "holdings": every[:3]}, HOLDINGS, texts) == ["holdings"]
+    assert partial_lists({"filer": "F", "holdings": every}, HOLDINGS, texts) == []
+    # Rows left out on pages the answer does use are not judged; neither are a few on other pages.
+    assert partial_lists({"holdings": every[:40:2] + every[40:]}, HOLDINGS, texts) == []
+    assert partial_lists({"holdings": every[:3]}, HOLDINGS, texts[:1] + [texts[1][:600]] * 2) == []
+
+
+def test_a_list_given_only_in_part_is_read_again_page_by_page(tmp_path):
+    from docextract.oneshot import extract_oneshot
+
+    pdf = _holdings_pdf(tmp_path)
+
+    def answer(rows):
+        return (json.dumps({"holdings": [_holding(n) for n in rows]}), "stop")
+
+    whole = (json.dumps({"filer": "F", "holdings": [_holding(n) for n in (1, 2, 3)]}), "stop")
+    model = OneShotModel([whole, answer(range(1, 31)), answer(range(31, 61)), answer(range(61, 91))])
+    result = extract_oneshot(pdf, HOLDINGS, workspace=tmp_path / "run", backend=model)
+    assert len(result.data["holdings"]) == 90 and result.data["filer"] == "F"
+    assert [task.first_page for task in model.tasks[1:]] == [1, 2, 3]
+    assert list(model.tasks[1].original_schema["properties"]) == ["holdings"]
+
+    # Pages that list no more rows than the answer leave its rows as they were.
+    model = OneShotModel([whole, answer([1]), answer([]), answer([31])])
+    result = extract_oneshot(pdf, HOLDINGS, workspace=tmp_path / "again", backend=model)
+    assert [row["name"] for row in result.data["holdings"]] == ["HOLD001", "HOLD002", "HOLD003"]
+
+
+def test_a_document_whose_other_fields_cannot_be_asked_goes_to_the_fallback_unread(tmp_path):
+    from docextract.oneshot import extract_oneshot
+
+    # The whole document and then its fields outside tables, each refused at 150, 100 and 72 DPI.
+    model = OneShotModel([("", "input_limit")] * 6)
+    outcome = extract_oneshot(
+        _long_ledger_pdf(tmp_path),
+        LEDGER,
+        workspace=tmp_path / "run",
+        backend=model,
+        dpi=150,
+        fallback=lambda: "windowed",
+    )
+    assert outcome == "windowed"
+    assert [len(task.page_images) for task in model.tasks] == [5, 5, 5, 4, 4, 4]  # no page read alone
+
+
+def test_a_document_too_long_even_with_small_images_is_shown_by_its_text(tmp_path):
+    from reportlab.pdfgen.canvas import Canvas
+
+    from docextract.oneshot import extract_oneshot
+
+    path = tmp_path / "contract.pdf"
+    canvas = Canvas(str(path), invariant=1)
+    for number in range(1, 8):
+        if number != 4:  # page 4 is a scan: no text of its own
+            for line in range(8):
+                text = f"Clause {number}.{line} of the contract, printed at length"
+                canvas.drawString(48, 760 - 20 * line, text)
+        canvas.showPage()
+    canvas.save()
+    model = OneShotModel([("", "input_limit")] * 3 + [('{"title":"Contract","rows":[],"total":5}', "stop")])
+    result = extract_oneshot(path, LEDGER, workspace=tmp_path / "run", backend=model, dpi=150)
+    assert result.data == {"title": "Contract", "rows": [], "total": 5}
+    *refused, read = model.tasks
+    assert [len(task.page_images) for task in refused] == [7, 7, 7] and len(read.page_texts) == 7
+    # Pages 3 and 5 are shown by their text alone; the first and last two and the scan keep their
+    # images, at the first resolution.
+    shown = [image.rsplit("/", 2)[-2:] for image in read.page_images]
+    assert shown == [["dpi-150", f"p{index:04d}.png"] for index in (0, 1, 3, 5, 6)]
+    assert "Clause 3.7" in read.page_texts[2]
+
+
+def test_answers_stored_under_a_lower_output_limit_stand_unless_cut_off(tmp_path):
+    import pytest
+
+    from docextract.batch import GenerationStore
+    from docextract.cited import Pending
+    from docextract.oneshot import extract_oneshot
+
+    old = {"backend": "engine", "generation": {"max_new_tokens": 16384, "max_model_len": 131072}}
+    new = {**old, "generation": {**old["generation"], "max_new_tokens": 32768}}
+    pdf = _invoice_pdf(tmp_path)
+
+    def first_task(identity):
+        model = OneShotModel([('{"invoice": "A-17"}', "stop")])
+        model.identity = identity
+        extract_oneshot(pdf, INVOICE, workspace=tmp_path / "probe", backend=model)
+        return model.tasks[0]
+
+    old_id = first_task(old).task_id
+    for finish, stands in (("stop", True), ("length", False)):
+        path = tmp_path / f"{finish}.jsonl"
+        path.write_text(
+            json.dumps(
+                {
+                    "task_id": old_id,
+                    "generation": {"raw_text": '{"invoice": "A-17"}', "finish_reason": finish},
+                }
+            )
+            + "\n"
+        )
+        store = GenerationStore(new, path, legacy=(old,))
+        if stands:
+            result = extract_oneshot(pdf, INVOICE, workspace=tmp_path / finish, backend=store)
+            assert result.data["invoice"] == "A-17" and not store.queued
+        else:  # cut off at the lower limit: asked again with the higher one
+            with pytest.raises(Pending):
+                extract_oneshot(pdf, INVOICE, workspace=tmp_path / finish, backend=store)
+            assert list(store.queued) != [old_id] and len(store.queued) == 1
+    # Without legacy engines, nothing stored under another identity is used.
+    store = GenerationStore(new, tmp_path / "stop.jsonl")
+    with pytest.raises(Pending):
+        extract_oneshot(pdf, INVOICE, workspace=tmp_path / "none", backend=store)

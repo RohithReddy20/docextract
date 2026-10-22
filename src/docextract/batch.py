@@ -62,10 +62,20 @@ class BatchedStream:
 
 
 class GenerationStore:
-    """Backend facade over durable stored generations; a missing task is queued, never generated."""
+    """Backend facade over durable stored generations; a missing task is queued, never generated.
 
-    def __init__(self, identity: dict[str, Any], path: Path):
+    `legacy` names engines that differed from this one only by a lower output limit: an answer stored
+    for a task's alias under one of them stands for the task unless the limit cut it off (the same
+    greedy answer, which a higher limit lets finish). An answer cut off at the task's own lower limit
+    stands too, and a refusal stands since a higher output limit leaves less room for input.
+    """
+
+    def __init__(self, identity: dict[str, Any], path: Path, legacy: tuple[dict[str, Any], ...] = ()):
         self.identity = identity
+        self.legacy = tuple(legacy)
+        self.legacy_limit = min(
+            (other["generation"]["max_new_tokens"] for other in self.legacy), default=None
+        )
         self.path = path
         self.saved: dict[str, GenerationResult] = {}
         self.queued: dict[str, CitedTask] = {}
@@ -78,6 +88,13 @@ class GenerationStore:
     def generate_cited(self, task: CitedTask) -> GenerationResult:
         if task.task_id in self.saved:
             return self.saved[task.task_id]
+        for alias in task.aliases:
+            answer = self.saved.get(alias)
+            if answer is not None and (
+                answer.finish_reason != "length"
+                or (task.max_tokens is not None and task.max_tokens <= (self.legacy_limit or 0))
+            ):
+                return answer
         self.queued[task.task_id] = task
         raise Pending([task.task_id])
 
@@ -138,9 +155,10 @@ def run_batch(
     batch_size: int = 64,
     on_result=None,
     parser=None,
+    legacy_identities: tuple[dict[str, Any], ...] = (),
     **options,
 ) -> dict[str, ExtractionResult | str]:
-    store = GenerationStore(engine.identity, root / "generations.jsonl")
+    store = GenerationStore(engine.identity, root / "generations.jsonl", legacy_identities)
     parser = parser if isinstance(parser, CachedParser) else CachedParser(parser)
     stream = engine if hasattr(engine, "submit") else BatchedStream(engine, batch_size)
     # A job is a document under its own options (for example one prompt variant); its id is also its
@@ -176,6 +194,12 @@ def run_batch(
 
     # Documents are queued in order, so a first-come engine finishes them roughly in order.
     stream.submit([task for case_id in documents for task in attempt(case_id)])
+    # How much of a resumed run its stored answers covered.
+    print(
+        f"first pass: {len(outcomes)} of {len(documents)} documents from stored answers, "
+        f"{len(in_flight)} requests queued for the other {len(waiting)}",
+        flush=True,
+    )
     while waiting:
         answers = stream.poll()
         if not answers and not stream.busy():

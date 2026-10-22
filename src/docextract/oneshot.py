@@ -126,14 +126,26 @@ def cut_off_table(partial: dict, schema: dict, raw: str = "") -> str | None:
 
 
 def record_lists(schema: dict) -> list[str]:
-    """The top-level properties the schema declares lists of records (arrays of objects)."""
+    """The top-level properties the schema declares lists of records (arrays of objects), null allowed
+    or not."""
     names = []
     for name, node in (prepare_schema(schema).get("properties") or {}).items():
-        if isinstance(node, dict) and "array" in _types(node):
-            items = _resolve(node.get("items") or {}, schema)
-            if "object" in _types(items) or "properties" in items:
-                names.append(name)
+        array = _array(node, schema) if isinstance(node, dict) else None
+        items = _resolve((array or {}).get("items") or {}, schema)
+        if array is not None and ("object" in _types(items) or "properties" in items):
+            names.append(name)
     return names
+
+
+def _array(node: dict, schema: dict) -> dict | None:
+    """The array a property declares: the property itself, or the array it may be instead of null
+    (`anyOf`/`oneOf` options, as generated for an optional list)."""
+    node = _resolve(node, schema)
+    for option in [node, *(node.get("anyOf") or node.get("oneOf") or [])]:
+        option = _resolve(option, schema) if isinstance(option, dict) else {}
+        if "array" in _types(option):
+            return option
+    return None
 
 
 # Pages at each end of a document too long for one request that are shown for its fields outside
@@ -287,7 +299,8 @@ def _record_line(record: dict, lines: list[str], start: int, group: set[str]) ->
 def nullable_fields(schema: dict, table: str) -> frozenset[str]:
     """Fields of a top-level list's records that may be null (typed null, or not required)."""
     prepared = prepare_schema(schema)
-    items = _resolve((prepared.get("properties") or {}).get(table, {}).get("items") or {}, prepared)
+    array = _array((prepared.get("properties") or {}).get(table, {}), prepared) or {}
+    items = _resolve(array.get("items") or {}, prepared)
     required = set(items.get("required") or [])
     return frozenset(
         key
@@ -356,6 +369,107 @@ def carry_forward(pages: list[list], texts: list[str], nullable: frozenset[str] 
         repaired.append(page)
         previous = next((record for record in reversed(page) if isinstance(record, dict)), previous)
     return repaired
+
+
+# A whole-document answer can list part of a long table and stop (answers to two 13F filings listed 25
+# and 32 of their 1,168 and 1,223 holdings). Lines printed like the list's own rows but on pages none of
+# its rows come from, at least LAZY_RATIO times its rows and LAZY_LINES in all, have the list read
+# again page by page. (On 36 benchmark documents answered in one request, the two filings showed over
+# 1,000 such lines, 33 and 43 times their rows; complete lists showed at most 5.6 times.)
+LAZY_RATIO = 10
+LAZY_LINES = 50
+NUMBER_TOKEN = re.compile(r"[-+(]?\$?\d[\d,]*(?:\.\d+)?%?\)?")
+
+
+def _line_shape(line: str) -> tuple[str, int]:
+    """The kinds of a line's tokens in order (n a number, c letters with digits, w a run of words) and
+    how many numbers it prints."""
+    kinds: list[str] = []
+    for token in line.split():
+        if NUMBER_TOKEN.fullmatch(token):
+            kind = "n"
+        elif re.search(r"\d", token) and re.search(r"[^\W\d_]", token):
+            kind = "c"
+        else:
+            kind = "w"
+        if not (kind == "w" and kinds and kinds[-1] == "w"):
+            kinds.append(kind)
+    return "".join(kinds), kinds.count("n")
+
+
+def _scalars(record: dict) -> list:
+    """A record's own values, those of objects inside it included (lists inside it are not)."""
+    values = []
+    for value in record.values():
+        if isinstance(value, dict):
+            values += _scalars(value)
+        elif not isinstance(value, list):
+            values.append(value)
+    return values
+
+
+def partial_lists(data: dict, schema: dict, texts: list[str] | tuple[str, ...]) -> list[str]:
+    """Top-level lists of records an answer listed only part of, judged from the PDF's page `texts`.
+
+    A line comes from a record when it prints two of the record's distinctive values (or the only one
+    it has): printed values of three characters or more used by at most two records of the answer's
+    lists. A list's own lines are those coming from its records; lines printed like them (the same
+    kinds of tokens in the same order, as on three of its lines, with two numbers or more) that come
+    from no record, on pages none of its records come from, are rows the answer left out.
+    """
+    import bisect
+    from collections import Counter
+    from itertools import accumulate
+
+    lines = [(page, line) for page, text in enumerate(texts) for line in text.splitlines()]
+    tables = [name for name in record_lists(schema) if isinstance(data.get(name), list)]
+    records = [(name, record) for name in tables for record in data[name] if isinstance(record, dict)]
+    if not lines or not records:
+        return []
+    printed = [
+        (name, {_forms(value) for value in _scalars(record) if len(_printed(value) or "") >= 3})
+        for name, record in records
+    ]
+    uses = Counter(forms for _, values in printed for forms in values)
+    text = "\n".join(line for _, line in lines)
+    starts = list(accumulate((len(line) + 1 for _, line in lines[:-1]), initial=0))
+    found: dict[tuple, set[int]] = {}
+
+    def where(forms: tuple) -> set[int]:
+        """The lines printing a value in any of its forms."""
+        if forms not in found:
+            found[forms] = set()
+            for form in forms:
+                at = text.find(form)
+                while at != -1:
+                    found[forms].add(bisect.bisect_right(starts, at) - 1)
+                    at = text.find(form, at + 1)
+        return found[forms]
+
+    own: dict[str, set[int]] = {name: set() for name in tables}
+    for name, values in printed:
+        distinctive = [forms for forms in values if uses[forms] <= 2]
+        hits = Counter(index for forms in distinctive for index in where(forms))
+        own[name].update(index for index, count in hits.items() if count >= min(2, len(distinctive)))
+    explained = set().union(*own.values())
+    shapes = [_line_shape(line) for _, line in lines]
+    partial = []
+    for name in tables:
+        rows = sum(1 for record in data[name] if isinstance(record, dict))
+        pages = {lines[index][0] for index in own[name]}
+        seen = Counter(shapes[index][0] for index in own[name] if shapes[index][1] >= 2)
+        alike = {shape for shape, count in seen.items() if count >= 3}
+        left = [
+            index
+            for index, (page, _) in enumerate(lines)
+            if page not in pages
+            and index not in explained
+            and shapes[index][0] in alike
+            and shapes[index][1] >= 2
+        ]
+        if len(left) >= max(LAZY_LINES, LAZY_RATIO * rows) and len({lines[index][0] for index in left}) >= 2:
+            partial.append(name)
+    return partial
 
 
 def merge_answers(parts: list[Any]) -> Any:
@@ -666,10 +780,34 @@ def pdf_page_texts(document: Path) -> list[str]:
 PAGE_TOKENS_PER_CHAR = 4
 
 
+def _recognized(page) -> bool:
+    """Whether a parsed page's text was read by OCR (a scan without enough text of its own)."""
+    return bool({"ocr_text", "sparse_native_text"} & set(page.quality_flags))
+
+
+def recognized_texts(snapshot, texts: tuple[str, ...]) -> tuple[str, ...]:
+    """The page `texts` with each scanned page's text replaced by its parsed lines (OCR, in reading
+    order, with whatever text of its own the page has)."""
+    return tuple(
+        "\n".join(atom.text for atom in page.atoms if atom.kind == "line")
+        if index < len(snapshot.pages) and _recognized(page := snapshot.pages[index])
+        else text
+        for index, text in enumerate(texts)
+    )
+
+
 def page_output_cap(text: str) -> int | None:
     """The output limit of a page request; None (the engine's) for a page with little or no text."""
     chars = len(text.strip())
     return max(1024, PAGE_TOKENS_PER_CHAR * chars) if chars >= 200 else None
+
+
+def _aliases(identity: dict, backend) -> tuple[str, ...]:
+    """The ids a request identified by `identity` had under the store's legacy engines (the same
+    engine with a lower output limit), whose stored answers may stand for it."""
+    from docextract.contracts import digest
+
+    return tuple(digest({**identity, "backend": other}) for other in getattr(backend, "legacy", ()))
 
 
 def beyond_limits(images: list, texts: tuple, identity: dict) -> bool:
@@ -681,25 +819,42 @@ def beyond_limits(images: list, texts: tuple, identity: dict) -> bool:
     return bool(pages and len(images) > pages) or bool(window and sum(map(len, texts)) > 8 * window)
 
 
-def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_tokens=None, pages=None):
+def _ask_document(
+    document, schema, snapshot, texts, store, dpi, backend, max_tokens=None, pages=None, ocr_text=False
+):
     """One request for the whole document, or for the listed `pages` (numbers from 1), with output
     limited to `max_tokens` when given. A request too long for the model's window is retried with
     smaller images (two thirds of the resolution, down to 72 DPI); one the engine would refuse at any
     resolution is refused here, without building its prompt (a run crashed in native code right after
-    building one of 466,296 tokens)."""
+    building one of 466,296 tokens). Last, the pages with a text layer are shown by their text alone,
+    except the first and last ones (`edge_pages`, where a form's boxed fields are printed), at the
+    first resolution: a long contract then fits one request, whose model sees which of its tables the
+    schema means (read one page at a time, clause lists and item numbers repeated in other sections
+    became line items; with no page image at all, a purchase order's boxed fields were misread). With
+    `ocr_text`, a scanned page's text is its OCR lines (`recognized_texts`); it keeps its image."""
     import hashlib
 
     from docextract.cited import CitedTask
     from docextract.contracts import digest
     from docextract.models import GenerationResult
 
+    read = recognized_texts(snapshot, texts) if texts and ocr_text else texts
+    text_only, first_dpi = False, dpi
     while True:
         images = render_page_images(document, store / snapshot.snapshot_id / f"dpi-{dpi}", dpi)
         count = len(images)
-        shown = texts
+        numbers = pages or range(1, count + 1)
+        own = tuple(texts[number - 1] for number in numbers) if texts else ()
+        shown = tuple(read[number - 1] for number in numbers) if texts else ()
         if pages:
             images = [images[number - 1] for number in pages]
-            shown = tuple(texts[number - 1] for number in pages) if texts else ()
+        if text_only:
+            edges = edge_pages(count)
+            images = [
+                image
+                for number, image, text in zip(numbers, images, own, strict=True)
+                if number in edges or len(text.strip()) < 200
+            ]
         identity = {
             "protocol": "oneshot/1",
             "schema": schema,
@@ -719,13 +874,24 @@ def _ask_document(document, schema, snapshot, texts, store, dpi, backend, max_to
             max_tokens=max_tokens,
             page_numbers=tuple(pages or ()),
             page_count=count if pages else None,
+            aliases=_aliases(identity, backend),
         )
-        if beyond_limits(images, shown, backend.identity):
-            return task, GenerationResult(raw_text="", finish_reason="input_limit")
-        generation = backend.generate_cited(task)  # a batch run's store raises Pending here
-        if generation.finish_reason != "input_limit" or dpi <= 72:
+        refused = beyond_limits(images, shown, backend.identity)
+        if refused:
+            generation = GenerationResult(raw_text="", finish_reason="input_limit")
+        else:
+            generation = backend.generate_cited(task)  # a batch run's store raises Pending here
+        if generation.finish_reason != "input_limit":
             return task, generation
-        dpi = max(72, dpi * 2 // 3)
+        if dpi > 72 and not refused:
+            dpi = max(72, dpi * 2 // 3)
+        elif not text_only and any(
+            len(text.strip()) >= 200 and number not in edge_pages(count)
+            for number, text in zip(numbers, own, strict=True)
+        ):
+            text_only, dpi = True, first_dpi
+        else:
+            return task, generation
 
 
 # Resolution of a page read on its own when it has no text layer (single short pages read better at
@@ -749,18 +915,21 @@ def _answer(
     depth=0,
     max_tokens=None,
     pages=None,
+    ocr_text=False,
 ):
     """The answer to `schema`, every request it took as (label, generation, read by pages), and the
-    whole-document request's task.
+    whole-document request's task (scanned pages shown with their OCR text when `ocr_text`).
 
     Tables are read page by page when one request cannot hold them: an answer cut off at the output
     limit while writing a top-level list of records completes that list, and a document too long for
-    one request even with small images reads all its top-level lists of records. Each page request
-    shows one page image and its text; the records of all pages are kept in page order, identical
-    ones included, and rows continued across a page break get their group's labels (`carry_forward`).
-    (Adding the end of the previous page as context changed nothing but added duplicated rows.) The
-    other fields are asked for again: over the whole document after a cut-off answer (which may split
-    in turn), or from its first and last pages when the document does not fit (`edge_pages`).
+    one request even with small images reads all its top-level lists of records. A list that a
+    complete answer gave only part of (`partial_lists`) is read page by page too, and the pages' rows
+    replace the answer's when there are more of them. Each page request shows one page image and its
+    text; the records of all pages are kept in page order, identical ones included, and rows continued
+    across a page break get their group's labels (`carry_forward`). (Adding the end of the previous
+    page as context changed nothing but added duplicated rows.) The other fields are asked for again:
+    over the whole document after a cut-off answer (which may split in turn), or, before any page is
+    read, from its first and last pages when the document does not fit (`edge_pages`).
     """
     import hashlib
 
@@ -768,14 +937,17 @@ def _answer(
     from docextract.contracts import digest
 
     task, generation = _ask_document(
-        document, schema, snapshot, texts, store, dpi, backend, max_tokens, pages
+        document, schema, snapshot, texts, store, dpi, backend, max_tokens, pages, ocr_text
     )
     partial = parse_answer(generation.raw_text)
     too_long = generation.finish_reason == "input_limit" and depth == 0
+    lazy = False
     if too_long:
         tables = record_lists(schema)
     elif generation.finish_reason == "length" and depth < 3:
         tables = [name for name in [cut_off_table(partial, schema, generation.raw_text)] if name]
+    elif generation.finish_reason == "stop" and not pages and texts:
+        tables, lazy = partial_lists(partial, schema, texts), True
     else:
         tables = []
     if not tables:
@@ -793,6 +965,37 @@ def _answer(
     pending: list[str] = []
     answered = []
     steps = [(label, generation, True)]
+    data = {key: value for key, value in partial.items() if key not in tables}
+    missing = [key for key in prepared["properties"] if key not in tables and key not in partial]
+
+    def ask_rest():
+        return _answer(
+            document,
+            split_schema(prepared, missing),
+            snapshot,
+            texts,
+            store,
+            dpi,
+            backend,
+            label="remaining fields",
+            depth=depth + 1,
+            max_tokens=None
+            if any(_array(prepared["properties"][key], prepared) is not None for key in missing)
+            else REST_MAX_TOKENS,
+            pages=edge_pages(len(images)) if too_long else pages,
+            ocr_text=ocr_text,
+        )
+
+    if too_long and missing:
+        # The fields outside tables are asked first (a batch run queues the pages once they are
+        # answered): a schema too long for one request even without the tables (tax returns with
+        # 760K-character schemas) leaves the whole document to the fallback, unread page by page.
+        rest, more, _ = ask_rest()
+        if more[0][1].finish_reason == "input_limit":
+            return partial, [(label, generation, False), *more], task
+        data.update(rest)
+        steps += more
+        missing = []
     for index, image in enumerate(images):
         own = (texts[index],) if texts else ()
         cap = page_output_cap(texts[index]) if texts else None
@@ -818,6 +1021,7 @@ def _answer(
                 first_page=index + 1,
                 page_count=len(images),
                 max_tokens=limit,
+                aliases=_aliases(identity, backend),
             )
             try:
                 answer = backend.generate_cited(page)
@@ -832,25 +1036,9 @@ def _answer(
                 continue
             answered.append((index, answer))
             break
-    data = {key: value for key, value in partial.items() if key not in tables}
-    missing = [key for key in prepared["properties"] if key not in tables and key not in partial]
     if missing:
         try:
-            rest, more, _ = _answer(
-                document,
-                split_schema(prepared, missing),
-                snapshot,
-                texts,
-                store,
-                dpi,
-                backend,
-                label="remaining fields",
-                depth=depth + 1,
-                max_tokens=None
-                if any("array" in _types(_resolve(prepared["properties"][key], prepared)) for key in missing)
-                else REST_MAX_TOKENS,
-                pages=edge_pages(len(images)) if too_long else pages,
-            )
+            rest, more, _ = ask_rest()
             data.update(rest)
             steps += more
         except Pending as waiting:
@@ -868,7 +1056,9 @@ def _answer(
         records = found[table]
         if texts:
             records = carry_forward(records, list(texts), nullable_fields(prepared, table))
-        data[table] = [record for page_records in records for record in page_records]
+        listed = [record for page_records in records for record in page_records]
+        # A list judged partial keeps the whole-document answer's rows unless its pages list more.
+        data[table] = listed if not lazy or len(listed) > len(partial[table]) else partial[table]
     return data, steps, task
 
 
@@ -881,11 +1071,14 @@ def extract_oneshot(
     parser=None,
     dpi: int | None = None,
     text_layer: bool = True,
+    ocr_text: bool = False,
     page_images: Path | None = None,
     fallback=None,
 ):
     """Extract a whole document in one request: every page image, the native text layer and the full
-    schema; the answer is typed to the schema and its printed values are located for evidence.
+    schema; the answer is typed to the schema and its printed values are located for evidence. With
+    `ocr_text`, whole-document requests show a scanned page's OCR lines as its text (on 24 scanned
+    documents 0.911 -> 0.926; page-by-page reading keeps the PDF's own text, untested with OCR).
 
     A request too long for the model's window is retried with smaller images (two thirds of the
     resolution, down to 72 DPI). An answer cut off at the output limit while writing a top-level list
@@ -913,7 +1106,7 @@ def extract_oneshot(
     texts = tuple(pdf_page_texts(document)) if text_layer else ()
     store = page_images or workspace / "page-images"
     dpi = dpi or page_dpi(len(snapshot.pages))
-    data, steps, task = _answer(document, schema, snapshot, texts, store, dpi, backend)
+    data, steps, task = _answer(document, schema, snapshot, texts, store, dpi, backend, ocr_text=ocr_text)
     generation, by_pages = steps[0][1], steps[0][2]
     if not by_pages and generation.finish_reason in ("input_limit", "length") and fallback is not None:
         return fallback()

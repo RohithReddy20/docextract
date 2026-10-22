@@ -267,3 +267,29 @@ def test_a_schema_split_into_many_groups_gets_smaller_page_images(tmp_path):
     small = {"type": "object", "properties": {"invoice_id": {"type": "string"}}}
     extract_cited(pdf, small, workspace=tmp_path / "small", backend=Backend(), **options)
     assert seen == [1280]
+
+
+def test_a_scanned_page_can_show_its_ocr_lines_as_its_text(tmp_path):
+    from docextract.oneshot import extract_oneshot, recognized_texts
+
+    pdf = image_only_pdf(tmp_path)
+    parser = OcrFallbackParser(FakeRecognizer())
+    snapshot = parser.parse(pdf)
+    assert recognized_texts(snapshot, ("Native page", "")) == ("Native page", "Invoice ID: 0017")
+
+    class Backend:
+        identity = {"backend": "scripted", "version": "1"}
+
+        def __init__(self):
+            self.tasks = []
+
+        def generate_cited(self, task):
+            self.tasks.append(task)
+            return GenerationResult(raw_text='{"invoice_id": "0017"}', finish_reason="stop")
+
+    schema = {"type": "object", "properties": {"invoice_id": {"type": "string"}}}
+    plain, read = Backend(), Backend()
+    extract_oneshot(pdf, schema, workspace=tmp_path / "plain", backend=plain, parser=parser)
+    extract_oneshot(pdf, schema, workspace=tmp_path / "ocr", backend=read, parser=parser, ocr_text=True)
+    assert plain.tasks[0].page_texts[1].strip() == "" and read.tasks[0].page_texts[1] == "Invoice ID: 0017"
+    assert plain.tasks[0].task_id != read.tasks[0].task_id

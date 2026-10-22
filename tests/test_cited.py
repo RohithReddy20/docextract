@@ -875,3 +875,33 @@ def test_one_entity_described_in_two_sections_becomes_one_record(tmp_path):
         {"row": 2, "description": "2009 SEDAN BASIC", "distance": "40 mi", "vin": "1EXAMPLE0000000B2"},
     ]
     assert merged.data["cars"][2:] == [{"row": 7, "description": "SAME ROW", "distance": "9 mi"}] * 2
+
+
+def test_a_higher_output_limit_reuses_windows_answered_under_the_lower_one(tmp_path):
+    from docextract.batch import run_batch
+
+    rows = [("Code", "Qty", "Amount"), ("A1", "2", "$12.50"), ("B2", "1", "$5.00")]
+    pdf = make_pdf(tmp_path, [rows], name="table.pdf")
+
+    class Engine:
+        def __init__(self, limit):
+            self.identity = {"backend": "scripted-batch", "generation": {"max_new_tokens": limit}}
+            self.batches = []
+
+        def generate_batch(self, tasks):
+            self.batches.append(len(tasks))
+            return [GenerationResult(raw_text=json.dumps(table_script(task))) for task in tasks]
+
+    old, new = Engine(16384), Engine(32768)
+    cases = [("table", pdf, TABLE)]
+    first = run_batch(cases, root=tmp_path / "batch", engine=old, max_window_chars=200, overlap_lines=1)
+    again = run_batch(
+        cases,
+        root=tmp_path / "batch",
+        engine=new,
+        max_window_chars=200,
+        overlap_lines=1,
+        legacy_identities=(old.identity,),
+    )
+    assert old.batches and not new.batches  # every window answered from the store
+    assert again["table"].data == first["table"].data

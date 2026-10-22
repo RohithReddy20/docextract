@@ -121,6 +121,9 @@ class CitedTask(Contract):
     page_count: int | None = None
     # An output limit below the engine's own, for this request (None: the engine's).
     max_tokens: int | None = None
+    # Ids of this same request under engines that differ only by a lower output limit
+    # (`legacy_identities`); a store answers from them unless that answer was cut off.
+    aliases: tuple[str, ...] = ()
 
     @property
     def prompt_schema(self) -> dict[str, Any]:
@@ -1001,6 +1004,7 @@ def extract_cited(
     page_image_side: int | None = None,
     page_image_side_split: int | None = None,
     oneshot_dpi: int | None = None,
+    ocr_text: bool = False,
 ) -> ExtractionResult:
     if protocol == "oneshot":
         from docextract.oneshot import extract_oneshot
@@ -1011,7 +1015,9 @@ def extract_cited(
 
         def windowed():
             # Too large for one request (or cut off): the windowed plain-value pipeline answers instead.
-            arguments = {key: value for key, value in options.items() if key != "oneshot_dpi"}
+            arguments = {
+                key: value for key, value in options.items() if key not in ("oneshot_dpi", "ocr_text")
+            }
             return extract_cited(**arguments, protocol="values")
 
         return extract_oneshot(
@@ -1021,6 +1027,7 @@ def extract_cited(
             backend=backend,
             parser=parser,
             dpi=oneshot_dpi,
+            ocr_text=ocr_text,
             page_images=page_images,
             fallback=windowed,
         )
@@ -1092,25 +1099,33 @@ def extract_cited(
 
         # Generation identity covers only what changes a prompt; stored answers can be re-assembled
         # under different deterministic options without generating again.
-        generation_id = digest(
-            {
-                "snapshot": snapshot.snapshot_id,
-                "schema": schema,
-                "backend": backend.identity,
-                "protocol": "cited-values/3",
-                "max_chars": max_window_chars,
-                "overlap_lines": overlap_lines,
-                "max_schema_chars": max_schema_chars,
-                # A replay of an older run passes that run's prompt-code hashes explicitly.
-                "prompt_code": prompt_code or hashes("interpretation.py", "partition.py"),
-                # Present only when set, so earlier stored answers keep their identity.
-                **({"max_units": max_window_units} if max_window_units else {}),
-                **({"page_images": {"max_pages": max_window_pages, "format": "jpeg"}} if page_images else {}),
-                **({"protocol": protocol} if protocol != "cited" else {}),
-                **({"prompt_budget_chars": prompt_budget_chars} if prompt_budget_chars else {}),
-                **({"factor_notes": True} if factor_notes else {}),
-            }
-        )
+        def generation(backend_identity):
+            return digest(
+                {
+                    "snapshot": snapshot.snapshot_id,
+                    "schema": schema,
+                    "backend": backend_identity,
+                    "protocol": "cited-values/3",
+                    "max_chars": max_window_chars,
+                    "overlap_lines": overlap_lines,
+                    "max_schema_chars": max_schema_chars,
+                    # A replay of an older run passes that run's prompt-code hashes explicitly.
+                    "prompt_code": prompt_code or hashes("interpretation.py", "partition.py"),
+                    # Present only when set, so earlier stored answers keep their identity.
+                    **({"max_units": max_window_units} if max_window_units else {}),
+                    **(
+                        {"page_images": {"max_pages": max_window_pages, "format": "jpeg"}}
+                        if page_images
+                        else {}
+                    ),
+                    **({"protocol": protocol} if protocol != "cited" else {}),
+                    **({"prompt_budget_chars": prompt_budget_chars} if prompt_budget_chars else {}),
+                    **({"factor_notes": True} if factor_notes else {}),
+                }
+            )
+
+        generation_id = generation(backend.identity)
+        legacy_generation_ids = [generation(other) for other in getattr(backend, "legacy", ())]
         run_id = digest(
             {
                 "generation": generation_id,
@@ -1154,6 +1169,9 @@ def extract_cited(
                     page_images=shown,
                     page_image_side=page_image_side if shown else None,
                     protocol=protocol,
+                    aliases=tuple(
+                        digest({**identity, "generation": other}) for other in legacy_generation_ids
+                    ),
                 )
                 try:
                     state = _process(journal, run_id, task, backend, state, fault, compiled, complete_tables)
