@@ -1,0 +1,21 @@
+src/docextract/oneshot.py
+  s_eaf722cf290d93::t_567e28b90ed8a9 397-398,430-434,456
+tests/test_oneshot.py
+  s_eaf722cf290d93::t_567e28b90ed8a9 57,64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cd06e4f6b25f703428fbebe5f1c7111eb6f0d82c",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
