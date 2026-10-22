@@ -1,0 +1,24 @@
+tools/score_extractbench.py
+  s_eaf722cf290d93::t_c33a74db5a2df0 9-10,59-65,67-95,97-140,142-154,156-160,202,205
+  s_eaf722cf290d93::t_c64eee2e019833 155
+tests/test_extractbench.py
+  s_eaf722cf290d93::t_c64eee2e019833 207
+  s_eaf722cf290d93::t_416a360e3cb7b3 204
+  s_eaf722cf290d93::t_332585b0df5239 203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "73b68620c47340c4afea9e50b1507f8648a1b41a",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
