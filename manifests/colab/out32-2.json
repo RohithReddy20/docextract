@@ -1,0 +1,37 @@
+{
+ "note": "More documents whose whole-document answers full-1 cut off at 16,384 output tokens and read page by page (medium tables of 196-335 rows scoring 0.86-0.96, and a GSA price list that page-by-page reading doubled), with room for 32,768-token answers (out32-1: six of eight such documents at 0.95-1.0). Answers stored under the 16,384-token limit stand unless they were cut off (--legacy-max-new-tokens), so only the cut-off requests are generated; scored on the VM.",
+ "name": "out32-2",
+ "ids": [
+  "54d04d131ee94cd6",
+  "46f5f4906fc8ea2f",
+  "04d311c5d64fdc0f",
+  "9e83fbcbaac2052b",
+  "f507d12e361b2e50",
+  "0787095a2b7c1193",
+  "abfdb19cf6590220"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 100,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 32768,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ],
+ "legacy_max_new_tokens": [
+  16384
+ ]
+}

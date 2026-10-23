@@ -321,6 +321,42 @@ are from the official `ExtractEvaluator` in a separate process.
   not change, a refusal still applies with less room left for the prompt, and only cut-off answers
   are asked again (121 of 21,610 stored). `manifests/colab/out32-1.json`.
 
+- **More cut-off tables with 32K answers (out32-2, Colab L4).** Seven more such documents: a GSA price
+  list 0.551 -> 0.897 (all 98 rows in one answer; page by page it had taken each category twice) and a
+  209-row table 0.882 -> 0.963; a 196-row table fell 0.957 -> 0.873; four (207-335 rows) were cut off
+  again and read page by page from the answers stored under the 16K limit, unchanged, which is how the
+  store's reuse across output limits was confirmed on real answers (eight requests generated in all).
+  `manifests/colab/out32-2.json`.
+
+- **OCR text on every scanned document (ocr-2, Colab L4).** The 138 scanned documents that do not take
+  the windowed fallback, run with `ocr_text` from the stored answers; the 100-minute limit stopped it
+  with 98 finished. On those 98: 0.908 -> **0.916** (short 0.922 -> 0.927, medium 0.857 -> 0.878); 34
+  better, 21 worse, 43 unchanged. The largest gains are scanned financial slide decks and claim
+  forms (0.643 -> 0.857, 0.763 -> 0.910, 0.802 -> 0.964), the losses forms where the model copied an OCR
+  misreading. +0.24 on the benchmark mean. `manifests/colab/ocr-2.json`.
+
+- **A cut-off table read on from its last record (cont-1, Colab L4).** An answer cut off at the
+  output limit used to be thrown away for its table, which was then read one page at a time. Now the
+  records it completed are kept, the page its last record is printed on is found in the PDF text, and
+  the table is read on from there a few pages per request (half as many pages as the answer covered,
+  at most eight), each request given the last record read so far ("these pages continue a list ...
+  list only the records printed after it; a record that continues its group keeps its group fields").
+  A table that would take more than 12 such requests in a row is still read page by page, all at
+  once. Six tables cut off even with room for 32K tokens (207-766 rows), against full-1: 0.688 ->
+  0.945, 0.679 -> 0.899, 0.714 -> 0.885, 0.863 -> 0.894, 0.874 -> 0.855, 0.718 -> 0.703; +0.17 on the
+  benchmark mean. Some rows are still lost where one request's answer is cut off and the next begins
+  (282 of 340 rows in one). The engine's identity no longer hashes the engine and prompt source
+  files (any edit to them discarded every stored answer): it names a prompt version, fixed at the
+  values of the source that generated the stored answers, and `tests/test_prompts.py` pins the
+  prompts already in use. `manifests/colab/cont-1.json`.
+
+- **Estimate from the targeted runs.** full-1's per-document scores with each run's documents
+  replaced (lists-1's filings and customs form, long-2's contracts, out32-1, out32-2, ocr-2): value F1
+  0.913 -> about **0.926** (short 0.940 -> 0.942, medium 0.855 -> 0.895, long 0.850 -> 0.868), from 120
+  documents rerun. Not a run of the whole benchmark: documents whose answers would also change under
+  the combined settings (cut off at 16K but not tested at 32K, the 40 scanned ones left unfinished)
+  keep full-1's scores.
+
 - **OCR text for scanned pages (ocr-1, Colab L4).** The model sees each scanned page as an image only
   (the text layer it is given is the PDF's own). With `ocr_text`, a page whose text came from OCR shows
   its OCR lines as its text. On 25 scanned documents with dev keys (21 short, 4 medium), generated
