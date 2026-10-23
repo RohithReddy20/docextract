@@ -75,10 +75,12 @@ def user_text(
     first_page: int = 1,
     page_count: int | None = None,
     pages: list[int] | None = None,
+    after: str | None = None,
 ) -> str:
     """The request text: the prepared schema, the instructions and, when given, the PDF's text layer.
     A request for part of a longer document (`page_count`) says which pages it shows: the one page
-    `first_page`, or the listed `pages`."""
+    `first_page`, or the listed `pages`. A request reading on a list begun on earlier pages gives the
+    last record read so far (`after`)."""
     text = (
         "Extract every field from the attached document page image(s) according to the JSON schema below.\n\n"
         "JSON schema:\n"
@@ -96,6 +98,13 @@ def user_text(
         text += (
             f"\n\nThe image is page {first_page} of a {page_count}-page document. Extract what this page "
             "shows; use null (or an empty list) for anything not on it."
+        )
+    if after:
+        text += (
+            "\n\nThese pages continue a list begun on earlier pages, which were read up to and including "
+            f"this record:\n{after}\nList only the records printed after it, in the order printed. A "
+            "record at the top of these pages that continues its group (a heading printed on an earlier "
+            "page) keeps that record's group fields."
         )
     if page_texts:
         numbers = pages or range(first_page, first_page + len(page_texts))
@@ -408,6 +417,54 @@ def _scalars(record: dict) -> list:
     return values
 
 
+class _PrintedLines:
+    """The lines of a document's page texts, and which of them print a record's values."""
+
+    def __init__(self, texts):
+        from itertools import accumulate
+
+        self.lines = [(page, line) for page, text in enumerate(texts) for line in text.splitlines()]
+        self.text = "\n".join(line for _, line in self.lines)
+        self.starts = list(accumulate((len(line) + 1 for _, line in self.lines[:-1]), initial=0))
+        self.found: dict[tuple, set[int]] = {}
+
+    def where(self, forms: tuple) -> set[int]:
+        """The lines printing a value in any of its forms."""
+        import bisect
+
+        if forms not in self.found:
+            self.found[forms] = set()
+            for form in forms:
+                at = self.text.find(form)
+                while at != -1:
+                    self.found[forms].add(bisect.bisect_right(self.starts, at) - 1)
+                    at = self.text.find(form, at + 1)
+        return self.found[forms]
+
+    def own(self, records: list[dict]) -> list[set[int]]:
+        """Each record's own lines: those printing two of its distinctive values (or the only one it
+        has), printed values of three characters or more that at most two of the `records` use."""
+        from collections import Counter
+
+        printed = [
+            {_forms(value) for value in _scalars(record) if len(_printed(value) or "") >= 3}
+            for record in records
+        ]
+        uses = Counter(forms for values in printed for forms in values)
+        own = []
+        for values in printed:
+            distinctive = [forms for forms in values if uses[forms] <= 2]
+            hits = Counter(index for forms in distinctive for index in self.where(forms))
+            own.append({index for index, count in hits.items() if count >= min(2, len(distinctive))})
+        return own
+
+
+def record_pages(records: list[dict], texts) -> list[set[int]]:
+    """The pages (indexes into `texts`) each record is printed on, as `_PrintedLines.own` finds them."""
+    printed = _PrintedLines(texts)
+    return [{printed.lines[index][0] for index in own} for own in printed.own(records)]
+
+
 def partial_lists(data: dict, schema: dict, texts: list[str] | tuple[str, ...]) -> list[str]:
     """Top-level lists of records an answer listed only part of, judged from the PDF's page `texts`.
 
@@ -417,40 +474,17 @@ def partial_lists(data: dict, schema: dict, texts: list[str] | tuple[str, ...]) 
     kinds of tokens in the same order, as on three of its lines, with two numbers or more) that come
     from no record, on pages none of its records come from, are rows the answer left out.
     """
-    import bisect
     from collections import Counter
-    from itertools import accumulate
 
-    lines = [(page, line) for page, text in enumerate(texts) for line in text.splitlines()]
+    printed = _PrintedLines(texts)
+    lines = printed.lines
     tables = [name for name in record_lists(schema) if isinstance(data.get(name), list)]
     records = [(name, record) for name in tables for record in data[name] if isinstance(record, dict)]
     if not lines or not records:
         return []
-    printed = [
-        (name, {_forms(value) for value in _scalars(record) if len(_printed(value) or "") >= 3})
-        for name, record in records
-    ]
-    uses = Counter(forms for _, values in printed for forms in values)
-    text = "\n".join(line for _, line in lines)
-    starts = list(accumulate((len(line) + 1 for _, line in lines[:-1]), initial=0))
-    found: dict[tuple, set[int]] = {}
-
-    def where(forms: tuple) -> set[int]:
-        """The lines printing a value in any of its forms."""
-        if forms not in found:
-            found[forms] = set()
-            for form in forms:
-                at = text.find(form)
-                while at != -1:
-                    found[forms].add(bisect.bisect_right(starts, at) - 1)
-                    at = text.find(form, at + 1)
-        return found[forms]
-
     own: dict[str, set[int]] = {name: set() for name in tables}
-    for name, values in printed:
-        distinctive = [forms for forms in values if uses[forms] <= 2]
-        hits = Counter(index for forms in distinctive for index in where(forms))
-        own[name].update(index for index, count in hits.items() if count >= min(2, len(distinctive)))
+    for (name, _), lines_of in zip(records, printed.own([record for _, record in records]), strict=True):
+        own[name].update(lines_of)
     explained = set().union(*own.values())
     shapes = [_line_shape(line) for _, line in lines]
     partial = []
@@ -996,6 +1030,33 @@ def _answer(
         data.update(rest)
         steps += more
         missing = []
+    done = (
+        []
+        if too_long or lazy
+        else [record for record in partial.get(tables[0]) or [] if isinstance(record, dict)]
+    )
+    start = _last_page(done, texts) if done and texts else None
+    span = max(1, min(8, ((start or 0) + 1) // 2))
+    if start is not None and -(-(len(images) - start) // span) <= READ_ON_REQUESTS:
+        # A table cut off at the output limit keeps the records its answer completed and is read on
+        # from the page the last of them is printed on, a few pages at a time, each request given the
+        # last record read so far (page by page, heading levels and groups were lost at page breaks).
+        if missing:
+            try:
+                rest, more, _ = ask_rest()
+                data.update(rest)
+                steps += more
+            except Pending as waiting:
+                pending.extend(waiting.task_ids)
+        try:
+            records, more = _read_on(tables[0], rows, done, start, images, texts, backend, span)
+            steps += more
+        except Pending as waiting:
+            pending.extend(waiting.task_ids)
+        if pending:
+            raise Pending(pending)
+        data[tables[0]] = records
+        return data, steps, task
     for index, image in enumerate(images):
         own = (texts[index],) if texts else ()
         cap = page_output_cap(texts[index]) if texts else None
@@ -1060,6 +1121,87 @@ def _answer(
         # A list judged partial keeps the whole-document answer's rows unless its pages list more.
         data[table] = listed if not lazy or len(listed) > len(partial[table]) else partial[table]
     return data, steps, task
+
+
+# Requests one after another that a cut-off table may take to be read on; a longer table (thousands
+# of rows over dozens of dense pages) is read page by page, all pages at once.
+READ_ON_REQUESTS = 12
+
+
+def _last_page(records: list[dict], texts) -> int | None:
+    """The page (an index) the last of `records` is printed on, following them through the document
+    from its first page (a record whose values are printed again further on, as in a summary, takes
+    its first page at or after its predecessor's); None when none of them is found."""
+    current, found = 0, False
+    for pages in record_pages(records, texts):
+        later = [page for page in pages if page >= current]
+        if later:
+            current, found = min(later), True
+    return current if found else None
+
+
+def _beyond(records: list, new: list) -> list:
+    """`new` without the records it repeats at its start from the end of `records` (the record given
+    as context, or one or two before it)."""
+    tail = {json.dumps(record, sort_keys=True) for record in records[-3:]}
+    skip = 0
+    while skip < len(new) and json.dumps(new[skip], sort_keys=True) in tail:
+        skip += 1
+    return new[skip:]
+
+
+def _read_on(table, rows, done, start, images, texts, backend, span):
+    """The records of `table` (`rows`: the schema of that list alone) read on from page `start` (an
+    index) to the end, `span` pages per request, after the records `done`; each request is given the
+    last record read so far and its answer's records are added in order. A request cut off at the
+    output limit is followed by one from the page its last record is printed on."""
+    import hashlib
+
+    from docextract.cited import CitedTask
+    from docextract.contracts import digest
+
+    records, steps, page, count = list(done), [], start, len(images)
+    while page < count:
+        chunk = list(range(page, min(count, page + span)))
+        after = json.dumps(records[-1], ensure_ascii=False) if records else None
+        shown = tuple(texts[index] for index in chunk) if texts else ()
+        identity = {
+            "protocol": "oneshot-continue/1",
+            "schema": rows,
+            "backend": backend.identity,
+            "images": [hashlib.sha256(images[index].read_bytes()).hexdigest() for index in chunk],
+            "texts": digest(shown),
+            "pages": [index + 1 for index in chunk],
+            "count": count,
+            "after": after,
+        }
+        task = CitedTask(
+            task_id=digest(identity),
+            original_schema=rows,
+            units=(),
+            page_images=tuple(str(images[index]) for index in chunk),
+            protocol="oneshot",
+            page_texts=shown,
+            page_numbers=tuple(index + 1 for index in chunk),
+            page_count=count,
+            after=after,
+            aliases=_aliases(identity, backend),
+        )
+        answer = backend.generate_cited(task)  # a batch run's store raises Pending here
+        listed = parse_answer(answer.raw_text).get(table)
+        new = _beyond(
+            records,
+            [record for record in listed if isinstance(record, dict)] if isinstance(listed, list) else [],
+        )
+        cut = answer.finish_reason == "length" and bool(new)
+        steps.append((f"pages {chunk[0] + 1}-{chunk[-1] + 1}", answer, cut))
+        records += new
+        if cut:
+            last = _last_page(new, shown) if shown else None
+            page = chunk[last] if last is not None else chunk[-1]
+        else:
+            page = chunk[-1] + 1
+    return records, steps
 
 
 def extract_oneshot(

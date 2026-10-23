@@ -676,3 +676,35 @@ def test_answers_stored_under_a_lower_output_limit_stand_unless_cut_off(tmp_path
     store = GenerationStore(new, tmp_path / "stop.jsonl")
     with pytest.raises(Pending):
         extract_oneshot(pdf, INVOICE, workspace=tmp_path / "none", backend=store)
+
+
+def test_a_cut_off_table_is_read_on_from_its_last_complete_record(tmp_path):
+    from docextract.oneshot import extract_oneshot
+    from docextract.remote import cited_messages
+
+    pdf = _holdings_pdf(tmp_path)
+
+    def listing(numbers, cut=False):
+        text = json.dumps({"holdings": [_holding(n) for n in numbers]})
+        return (text[:-3] + ', {"name": "HOL', "length") if cut else (text, "stop")
+
+    whole = json.dumps({"filer": "F", "holdings": [_holding(n) for n in range(1, 11)]})[:-3] + ', {"na'
+    model = OneShotModel(
+        [
+            (whole, "length"),  # rows 1-10 complete, cut off in row 11 (page 1)
+            listing([10, *range(11, 31)]),  # page 1 from row 11 (row 10 repeated: dropped)
+            listing(range(31, 46), cut=True),  # page 2 cut off after row 45
+            listing(range(46, 61)),  # page 2 again, after row 45
+            listing(range(61, 91)),  # page 3
+        ]
+    )
+    result = extract_oneshot(pdf, HOLDINGS, workspace=tmp_path / "run", backend=model)
+    assert [row["name"] for row in result.data["holdings"]] == [f"HOLD{n:03d}" for n in range(1, 91)]
+    assert result.data["filer"] == "F"
+    _, first, cut, again, last = model.tasks
+    assert [task.page_numbers for task in (first, cut, again, last)] == [(1,), (2,), (2,), (3,)]
+    assert json.loads(first.after)["name"] == "HOLD010" and json.loads(again.after)["name"] == "HOLD045"
+    assert list(first.original_schema["properties"]) == ["holdings"]
+    text = cited_messages(again, "c", "oneshot")[0][1]["content"][-1]["text"]
+    assert "continue a list begun on earlier pages" in text and '"HOLD045"' in text
+    assert not result.unresolved or all("not located" in item.reason for item in result.unresolved)

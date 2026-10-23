@@ -124,6 +124,8 @@ class CitedTask(Contract):
     # Ids of this same request under engines that differ only by a lower output limit
     # (`legacy_identities`); a store answers from them unless that answer was cut off.
     aliases: tuple[str, ...] = ()
+    # A "oneshot" request reading on a list begun on earlier pages: the last record read so far (JSON).
+    after: str | None = None
 
     @property
     def prompt_schema(self) -> dict[str, Any]:
