@@ -1,0 +1,22 @@
+tests/test_prompts.py
+  s_eaf722cf290d93::t_f3662fcceb0343 1-23,27-55,64-74
+  s_eaf722cf290d93::t_d52ab1b1981dbd 24-26,56-63,75-83
+src/docextract/vllm_engine.py
+  s_eaf722cf290d93::t_88228de7360bac 18-26,138-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d530a32b424a4d244a824805712537896c0d1cff",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
