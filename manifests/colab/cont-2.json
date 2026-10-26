@@ -1,0 +1,36 @@
+{
+ "note": "As cont-1 (tables cut off even at 32K output tokens, read on from the page of the last record the answer completed, each request given the last record read so far), but one page per request: shown up to four pages at once, cont-1's answers listed as few as a third of a page's rows. Resumes from cont-1's stored answers (its 32K whole-document answers are reused); scored on the VM.",
+ "name": "cont-2",
+ "ids": [
+  "d5fd96d24bb18488",
+  "79ea7bff0e456f2c",
+  "1aa0ca15d3cb6a43",
+  "54d04d131ee94cd6",
+  "46f5f4906fc8ea2f",
+  "cf78a11e82647957"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 110,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 32768,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ],
+ "legacy_max_new_tokens": [
+  16384
+ ]
+}

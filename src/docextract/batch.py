@@ -151,7 +151,7 @@ def run_batch(
     *,
     root: Path,
     engine: BatchEngine | StreamingEngine,
-    passes: int = 12,
+    passes: int = 48,
     batch_size: int = 64,
     on_result=None,
     parser=None,

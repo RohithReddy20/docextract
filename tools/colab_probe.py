@@ -25,6 +25,7 @@ import re
 import shlex
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tarfile
@@ -194,6 +195,15 @@ def vm_status(session: str, out: str, local: Path) -> dict | None:
     return {"exit": code, "tail": lines[-3:]}
 
 
+def online() -> bool:
+    """Whether this machine can reach Colab at all: when it cannot, the VM is not to blame."""
+    try:
+        socket.create_connection(("colab.research.google.com", 443), timeout=10).close()
+        return True
+    except OSError:
+        return False
+
+
 def interrupt(*_):
     raise KeyboardInterrupt
 
@@ -355,6 +365,11 @@ def main():
             time.sleep(POLL_SECONDS)
             polls += 1
             status = vm_status(session, out, local)
+            if status is None and not online():
+                # The job runs on without this machine; giving up here would lose its answers
+                # (three runs were lost to this machine's network dropping for some minutes).
+                print("no network here: waiting for it", flush=True)
+                continue
             if status is None:
                 failures += 1
                 print(f"could not copy the log ({failures} in a row)", flush=True)

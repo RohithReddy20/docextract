@@ -340,7 +340,12 @@ def pinned_checkpoint(arm: str, manifest: Path, cache_root: Path, *, offline=Fal
     from huggingface_hub import snapshot_download
 
     registry = json.loads(manifest.read_text())
-    name = {"a": "Qwen/Qwen3.5-4B", "b": "numind/NuExtract3", "c": "Qwen/Qwen3.5-9B"}[arm]
+    name = {
+        "a": "Qwen/Qwen3.5-4B",
+        "b": "numind/NuExtract3",
+        "c": "Qwen/Qwen3.5-9B",
+        "d": "Qwen/Qwen3.8-27B-FP8",
+    }[arm]
     entry = next(item for item in registry["models"] if item["model"] == name)
     revision = entry["pinned_revision"]
     if len(revision) != 40 or not entry["license_file_verified"]:

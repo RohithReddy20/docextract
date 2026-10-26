@@ -1,0 +1,36 @@
+{
+ "note": "As cont-2 (cut-off tables read on one page per request, each given the last record read so far), with two fixes: on the page that record is printed on, records the answer lists above it are dropped (cont-2 read a page's 58 rows twice), and a document may take up to 48 rounds of requests (cont-2 stopped three documents after 12). Resumes from cont-2's stored answers; scored on the VM.",
+ "name": "cont-3",
+ "ids": [
+  "d5fd96d24bb18488",
+  "79ea7bff0e456f2c",
+  "1aa0ca15d3cb6a43",
+  "54d04d131ee94cd6",
+  "46f5f4906fc8ea2f",
+  "cf78a11e82647957"
+ ],
+ "arm": "c",
+ "dtype": "bfloat16",
+ "quantization": "fp8",
+ "kv_cache_dtype": "fp8",
+ "limit_minutes": 110,
+ "max_window_chars": 24000,
+ "max_schema_chars": 24000,
+ "max_new_tokens": 32768,
+ "max_model_len": 131072,
+ "max_num_seqs": 32,
+ "gpu_memory_utilization": 0.85,
+ "ocr": "doctr",
+ "speculative_tokens": 2,
+ "max_document_pages": 64,
+ "variants": [
+  {
+   "name": "",
+   "protocol": "oneshot",
+   "page_images": true
+  }
+ ],
+ "legacy_max_new_tokens": [
+  16384
+ ]
+}

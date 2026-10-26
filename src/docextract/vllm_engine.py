@@ -57,7 +57,7 @@ class VllmCitedEngine:
         queued_images=192,
     ):
         platform = require_remote()
-        if arm not in ("a", "b", "c"):
+        if arm not in ("a", "b", "c", "d"):
             raise ValueError("Unknown trial arm")
         print("Estimated total cash cost is stated by the launching job; no paid fallback here.", flush=True)
         if platform == "kaggle":

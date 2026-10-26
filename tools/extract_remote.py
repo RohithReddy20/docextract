@@ -198,7 +198,7 @@ def main():
     parser.add_argument(
         "--nulls-if-partial", action="store_true", help="null absent nullable fields even if windows failed"
     )
-    parser.add_argument("--arm", choices=("a", "b", "c"), required=True)
+    parser.add_argument("--arm", choices=("a", "b", "c", "d"), required=True)
     parser.add_argument("--quantization", choices=("fp8",), help="quantize weights at load (vLLM)")
     parser.add_argument("--kv-cache-dtype", choices=("fp8",), help="store running answers in 8 bits (vLLM)")
     parser.add_argument("--kernels", choices=("torch", "fla"), default="torch")

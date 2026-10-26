@@ -350,6 +350,27 @@ are from the official `ExtractEvaluator` in a separate process.
   values of the source that generated the stored answers, and `tests/test_prompts.py` pins the
   prompts already in use. `manifests/colab/cont-1.json`.
 
+- **Reading on one page per request instead (cont-2, cont-3, Colab L4).** To stop rows being lost
+  where one multi-page answer was cut off and the next began, the same six tables were read on one
+  page per request, records printed above the last one read on its page dropped. Worse on the whole:
+  0.945 -> 0.887, 0.899 -> 0.874, 0.885 -> 0.805, 0.894 -> 0.893, 0.855 -> 0.867, 0.703 -> 0.717
+  against cont-1, the estimate 0.9260 -> 0.9256. Answers for a single page listed rows of the pages
+  before it again (674 rows for a table of 561). Not kept: the multi-page read-on stays. A document
+  may now take up to 48 rounds of requests (cont-2 stopped three after 12). cont-3 was lost three
+  times to this machine's network dropping (the driver took the VM to have stopped answering and
+  gave up); it now waits while it cannot reach Colab at all. `manifests/colab/cont-2.json`,
+  `manifests/colab/cont-3.json`.
+
+- **Qwen3.8-27B in place of Qwen3.5-9B (q27-1, Colab G4).** The leaderboard's one-shot runs score
+  the 27B 89.75 against the 9B's 86.10. The same method (32K answers, scanned pages with their OCR
+  text) with the 27B's own FP8 checkpoint (arm "d", 31 GB, so a G4 rather than an L4), on 30 short
+  and 30 medium documents drawn at random: all 60 finished in 65 minutes, value F1 0.926 -> **0.963**
+  against the 9B's best scores on the same documents (short 0.953 -> 0.971, medium 0.900 -> 0.954;
+  33 better, 7 worse, none by more than 0.05). Largest gains where the 9B misread or skipped rows:
+  GSA labor categories 0.437 -> 0.905, an earnings deck 0.558 -> 0.857, scanned remittance advices
+  and RRC forms by 0.08-0.15. Scaled to the benchmark's 252 short and 98 medium documents, long ones
+  unchanged: about 0.953 (+-0.007 from the sample). `manifests/colab/q27-1.json`.
+
 - **Estimate from the targeted runs.** full-1's per-document scores with each run's documents
   replaced (lists-1's filings and customs form, long-2's contracts, out32-1, out32-2, ocr-2): value F1
   0.913 -> about **0.926** (short 0.940 -> 0.942, medium 0.855 -> 0.895, long 0.850 -> 0.868), from 120
