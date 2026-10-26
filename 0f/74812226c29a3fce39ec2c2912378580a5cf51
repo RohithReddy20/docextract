@@ -1,0 +1,62 @@
+manifests/colab/full-27b-rest.json
+  s_eaf722cf290d93::t_ab0adf658234c3 1-65
+src/docextract/oneshot.py
+  s_eaf722cf290d93::t_44ad0142bd8941 917-927
+  s_eaf722cf290d93::t_7aef6d5b77d390 79,84
+  s_eaf722cf290d93::t_e737e6e5ccc10a 970,983
+  s_eaf722cf290d93::t_c5a767c290a43b 1025,1028-1029
+  s_eaf722cf290d93::t_d9f9114493cf9d 1048
+  s_eaf722cf290d93::t_9ee82639297502 1319
+  s_eaf722cf290d93::t_994b81cc9876ad 130-185
+  s_eaf722cf290d93::t_2539bf88c0efe4 1344-1346
+  s_eaf722cf290d93::t_eb4697b3b65ea2 114-117
+  s_eaf722cf290d93::t_12181f17980612 1095
+  s_eaf722cf290d93::t_a20ba650d0db05 1282-1318,1320-1321
+  s_eaf722cf290d93::t_d58c7d6b5c37eb 1368-1376
+  s_eaf722cf290d93::t_4538e6a5c25f4d 1378-1379
+src/docextract/remote.py
+  s_eaf722cf290d93::t_2de3b6abbf45dc 246
+tests/test_cited.py
+  s_eaf722cf290d93::t_7662ff9ba3b6a4 422
+src/docextract/cited.py
+  s_eaf722cf290d93::t_e457f19745057b 129-131
+tools/colab_probe.py
+  s_eaf722cf290d93::t_de9a71686defb7 418-419,421,425
+  s_eaf722cf290d93::t_a696d439ae6c1b 482-484
+  s_eaf722cf290d93::t_44fd9219eab6c5 58-59
+  s_eaf722cf290d93::t_bbeacb4f52b08d 424,485-492
+tools/extract_remote.py
+  s_eaf722cf290d93::t_5ff0c9588c1b43 364-365,368-370,372
+  s_eaf722cf290d93::t_3b45e63ecefd3d 362-363,367
+  s_eaf722cf290d93::t_b44510f36033a7 219-225
+tests/test_oneshot.py
+  s_eaf722cf290d93::t_bbeacb4f52b08d 741-743,745-749,754-756
+  s_eaf722cf290d93::t_a3de9967e5b26c 681-699
+  s_eaf722cf290d93::t_28235b52df5d0a 700-740,744,750-753,757-774
+src/docextract/batch.py
+  s_eaf722cf290d93::t_0469e6f0492245 220-223
+  s_eaf722cf290d93::t_14fe2c29cc7096 93,97-98
+  s_eaf722cf290d93::t_597ee45fde7d34 69-73,79-80
+  s_eaf722cf290d93::t_37c01dbacb64ee 52-53
+  s_eaf722cf290d93::t_3f81ca0adb3dd8 33-35
+runtimes/colab/extract.py
+  s_eaf722cf290d93::t_d6f35c94f87434 115
+src/docextract/vllm_engine.py
+  s_eaf722cf290d93::t_0feb6f24472baa 208-214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f74812226c29a3fce39ec2c2912378580a5cf51",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
