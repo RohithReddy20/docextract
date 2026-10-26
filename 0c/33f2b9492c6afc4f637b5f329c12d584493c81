@@ -1,0 +1,32 @@
+docs/model-trials.md
+  s_eaf722cf290d93::t_0dd60fb055faff 374-388
+tools/colab_probe.py
+  s_eaf722cf290d93::t_045d92d255303c 185-186,371-372
+  s_eaf722cf290d93::t_944be9010afef1 390-391
+  s_eaf722cf290d93::t_608fec7ed6494d 191,193-195,197,201,209-210,368
+  s_eaf722cf290d93::t_69c90699ffb495 14-16
+  s_eaf722cf290d93::t_1ee6a800698165 17-19
+  s_eaf722cf290d93::t_a1f0382aa81dfc 386-387
+  s_eaf722cf290d93::t_4a38a333e73d1d 367,369-370
+  s_eaf722cf290d93::t_c0ab2a3a498bcb 484-486
+  s_eaf722cf290d93::t_048cc05b382d03 180-184,187-190,192,196,198-200,202-208,211-226
+  s_eaf722cf290d93::t_52652c4a1837e7 350-353
+  s_eaf722cf290d93::t_0676244e05b7b1 53-57
+  s_eaf722cf290d93::t_d9cc97b3eb9265 422-423,430,432-434,437-445
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c33f2b9492c6afc4f637b5f329c12d584493c81",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
