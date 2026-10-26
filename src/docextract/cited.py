@@ -126,6 +126,9 @@ class CitedTask(Contract):
     aliases: tuple[str, ...] = ()
     # A "oneshot" request reading on a list begun on earlier pages: the last record read so far (JSON).
     after: str | None = None
+    # A "oneshot" request showing the document before the schema, so that requests for several parts
+    # of one schema share the document as a prompt prefix.
+    schema_last: bool = False
 
     @property
     def prompt_schema(self) -> dict[str, Any]:

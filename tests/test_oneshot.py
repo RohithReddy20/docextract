@@ -678,6 +678,100 @@ def test_answers_stored_under_a_lower_output_limit_stand_unless_cut_off(tmp_path
         extract_oneshot(pdf, INVOICE, workspace=tmp_path / "none", backend=store)
 
 
+def test_answers_stored_by_the_same_engine_running_fewer_requests_at_once_stand(tmp_path):
+    from docextract.batch import GenerationStore
+    from docextract.oneshot import extract_oneshot
+
+    old = {"backend": "engine", "generation": {"max_new_tokens": 32768, "max_num_seqs": 32}}
+    new = {**old, "generation": {**old["generation"], "max_num_seqs": 64}}
+    pdf = _invoice_pdf(tmp_path)
+    model = OneShotModel([('{"invoice": "A-17"}', "stop")])
+    model.identity = old
+    extract_oneshot(pdf, INVOICE, workspace=tmp_path / "probe", backend=model)
+    path = tmp_path / "store.jsonl"
+    # Even an answer cut off at the output limit stands: the limit was the same.
+    generation = {"raw_text": '{"invoice": "A-17"}', "finish_reason": "length"}
+    path.write_text(json.dumps({"task_id": model.tasks[0].task_id, "generation": generation}) + "\n")
+    store = GenerationStore(new, path, legacy=(old,))
+    result = extract_oneshot(pdf, INVOICE, workspace=tmp_path / "run", backend=store)
+    assert result.data["invoice"] == "A-17" and not store.queued
+
+
+def test_a_schema_part_keeps_only_the_definitions_its_properties_reach():
+    from docextract.oneshot import own_definitions, split_schema
+
+    schema = {
+        "$defs": {
+            "Form": {"type": "object", "properties": {"line": {"$ref": "#/$defs/Line"}}},
+            "Line": {"type": "string"},
+            "Other": {"type": "string"},
+        },
+        "type": "object",
+        "properties": {"name": {"type": "string"}, "form": {"$ref": "#/$defs/Form"}},
+    }
+    assert list(own_definitions(schema)["$defs"]) == ["Form", "Line"]
+    assert "$defs" not in own_definitions(split_schema(schema, ["name"]))
+
+
+def _wide_schema():
+    """Three fields described at length, one through a definition, and a definition nothing uses."""
+    return {
+        "$defs": {
+            "Form": {"type": "object", "properties": {"code": {"type": ["string", "null"]}}},
+            "Unused": {"type": "string", "description": "u" * 20000},
+        },
+        "type": "object",
+        "properties": {
+            "invoice": {"type": "string", "description": "i" * 20000},
+            "total": {"type": "number", "description": "t" * 20000},
+            "form": {"anyOf": [{"$ref": "#/$defs/Form"}, {"type": "null"}], "description": "f" * 9000},
+        },
+    }
+
+
+def test_a_schema_too_long_for_any_request_is_asked_a_group_at_a_time(tmp_path):
+    from docextract.oneshot import extract_oneshot, schema_groups
+    from docextract.remote import cited_messages
+
+    assert schema_groups(_wide_schema()) == [["invoice"], ["total"], ["form"]]
+    model = OneShotModel(
+        [('{"invoice": "A-17"}', "stop"), ('{"total": "1,250.00"}', "stop"), ('{"form": null}', "stop")]
+    )
+    model.identity = {"backend": "engine", "generation": {"max_model_len": 20000}}
+    result = extract_oneshot(
+        _invoice_pdf(tmp_path), _wide_schema(), workspace=tmp_path / "run", backend=model
+    )
+    assert result.data["invoice"] == "A-17" and result.data["total"] == 1250.0
+    assert [list(task.original_schema["properties"]) for task in model.tasks] == [
+        ["invoice"],
+        ["total"],
+        ["form"],
+    ]
+    assert [list(task.original_schema.get("$defs", {})) for task in model.tasks] == [[], [], ["Form"]]
+    assert all(task.schema_last for task in model.tasks)
+    # The document comes first, so the three requests share it as a prompt prefix.
+    text = cited_messages(model.tasks[0], "a", "oneshot")[0][1]["content"][-1]["text"]
+    assert text.startswith("Text layer of the document") and text.index("Invoice A-17") < text.index(
+        "JSON schema"
+    )
+
+
+def test_a_document_too_long_even_beside_a_group_falls_back(tmp_path):
+    from docextract.oneshot import extract_oneshot
+
+    # Refused at every resolution (200, 133, 88 and 72 DPI).
+    model = OneShotModel([("", "input_limit")] * 4)
+    model.identity = {"backend": "engine", "generation": {"max_model_len": 20000}}
+    answer = extract_oneshot(
+        _invoice_pdf(tmp_path),
+        _wide_schema(),
+        workspace=tmp_path / "run",
+        backend=model,
+        fallback=lambda: "windowed",
+    )
+    assert answer == "windowed" and len(model.tasks) == 4
+
+
 def test_a_cut_off_table_is_read_on_from_its_last_complete_record(tmp_path):
     from docextract.oneshot import extract_oneshot
     from docextract.remote import cited_messages

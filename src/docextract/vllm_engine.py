@@ -205,9 +205,13 @@ class VllmCitedEngine:
         estimate = len(self.tokenizer(text)["input_ids"]) + sum(i.width * i.height // 1024 for i in images)
         return {"prompt": text, "multi_modal_data": {"image": images}}, estimate
 
-    def submit(self, tasks: list[CitedTask]) -> None:
-        """Queue windows; continuous batching admits them in order as earlier ones finish."""
-        self.backlog.extend(tasks)
+    def submit(self, tasks: list[CitedTask], first: bool = False) -> None:
+        """Queue windows; continuous batching admits them in order as earlier ones finish. With
+        `first`, ahead of the windows already waiting."""
+        if first:
+            self.backlog.extendleft(reversed(tasks))
+        else:
+            self.backlog.extend(tasks)
         self._admit()
 
     def _admit(self) -> None:

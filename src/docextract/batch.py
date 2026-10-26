@@ -30,7 +30,9 @@ class BatchEngine(Protocol):
 class StreamingEngine(Protocol):
     identity: dict[str, Any]
 
-    def submit(self, tasks: list[CitedTask]) -> None: ...
+    def submit(self, tasks: list[CitedTask], first: bool = False) -> None:
+        """Queue `tasks`, ahead of those already waiting when `first`."""
+        ...
 
     def poll(self) -> list[tuple[str, GenerationResult]]:
         """Advance the engine and return the answers that finished, by task id."""
@@ -47,8 +49,8 @@ class BatchedStream:
         self.identity = engine.identity
         self.queue: list[CitedTask] = []
 
-    def submit(self, tasks: list[CitedTask]) -> None:
-        self.queue.extend(tasks)
+    def submit(self, tasks: list[CitedTask], first: bool = False) -> None:
+        self.queue = [*tasks, *self.queue] if first else [*self.queue, *tasks]
 
     def busy(self) -> bool:
         return bool(self.queue)
@@ -64,18 +66,18 @@ class BatchedStream:
 class GenerationStore:
     """Backend facade over durable stored generations; a missing task is queued, never generated.
 
-    `legacy` names engines that differed from this one only by a lower output limit: an answer stored
-    for a task's alias under one of them stands for the task unless the limit cut it off (the same
-    greedy answer, which a higher limit lets finish). An answer cut off at the task's own lower limit
-    stands too, and a refusal stands since a higher output limit leaves less room for input.
+    `legacy` names engines that differed from this one only by a lower output limit or by how many
+    requests they ran at once: an answer stored for a task's alias under one of them stands for the
+    task unless a lower limit cut it off (the same greedy answer, which a higher limit lets finish). An
+    answer cut off at the task's own lower limit stands too, and a refusal stands since a higher output
+    limit leaves less room for input. Task aliases follow the order of `legacy`.
     """
 
     def __init__(self, identity: dict[str, Any], path: Path, legacy: tuple[dict[str, Any], ...] = ()):
         self.identity = identity
         self.legacy = tuple(legacy)
-        self.legacy_limit = min(
-            (other["generation"]["max_new_tokens"] for other in self.legacy), default=None
-        )
+        self.limit = identity.get("generation", {}).get("max_new_tokens")
+        self.legacy_limits = tuple(other["generation"]["max_new_tokens"] for other in self.legacy)
         self.path = path
         self.saved: dict[str, GenerationResult] = {}
         self.queued: dict[str, CitedTask] = {}
@@ -88,11 +90,12 @@ class GenerationStore:
     def generate_cited(self, task: CitedTask) -> GenerationResult:
         if task.task_id in self.saved:
             return self.saved[task.task_id]
-        for alias in task.aliases:
+        for alias, limit in zip(task.aliases, self.legacy_limits, strict=False):
             answer = self.saved.get(alias)
             if answer is not None and (
                 answer.finish_reason != "length"
-                or (task.max_tokens is not None and task.max_tokens <= (self.legacy_limit or 0))
+                or (self.limit is not None and limit >= self.limit)
+                or (task.max_tokens is not None and task.max_tokens <= limit)
             ):
                 return answer
         self.queued[task.task_id] = task
@@ -214,7 +217,10 @@ def run_batch(
                     ready.append(case_id)
         for case_id in ready:
             del waiting[case_id]
-            stream.submit(attempt(case_id))
+            # A document's next requests go ahead of documents not yet begun: the long ones read on
+            # a few pages at a time, one request after another, and queued last they kept a run going
+            # with a few requests at once after the rest had finished.
+            stream.submit(attempt(case_id), first=True)
     for case_id in documents:
         outcomes.setdefault(case_id, "generation passes exhausted")
     return outcomes

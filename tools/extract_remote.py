@@ -216,6 +216,13 @@ def main():
     )
     parser.add_argument("--max-model-len", type=int, default=16384)
     parser.add_argument("--max-num-seqs", type=int, default=64)
+    parser.add_argument(
+        "--legacy-max-num-seqs",
+        type=int,
+        nargs="*",
+        default=[],
+        help="earlier numbers of requests this engine ran at once, whose stored answers stand",
+    )
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.9)
     parser.add_argument("--dtype", choices=("float16", "bfloat16"), default="float16")
     parser.add_argument("--speculative-tokens", type=int, default=0, help="MTP draft tokens per step")
@@ -352,12 +359,17 @@ def main():
     ]
     if args.engine in ("vllm", "replay"):
         # Windows stream through one continuously batched engine; answers are stored as they finish.
-        # The same engine with a lower output limit: answers it finished stand (`GenerationStore`).
+        # The same engine with a lower output limit (answers it finished stand) or running a different
+        # number of requests at once (its answers stand), in either combination (`GenerationStore`).
+        current = engine.identity.get("generation", {})
+        limits = [args.max_new_tokens, *(n for n in args.legacy_max_new_tokens if n < args.max_new_tokens)]
         legacy = tuple(
-            {**engine.identity, "generation": {**engine.identity["generation"], "max_new_tokens": limit}}
-            for limit in args.legacy_max_new_tokens
-            if limit < args.max_new_tokens
+            {**engine.identity, "generation": {**current, "max_new_tokens": limit, "max_num_seqs": seqs}}
+            for limit in limits
+            for seqs in dict.fromkeys([current.get("max_num_seqs"), *args.legacy_max_num_seqs])
+            if (limit, seqs) != (current.get("max_new_tokens"), current.get("max_num_seqs"))
         )
+        legacy = legacy if args.legacy_max_new_tokens or args.legacy_max_num_seqs else ()
         run_batch(
             jobs,
             root=args.output,

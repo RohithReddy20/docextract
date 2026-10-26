@@ -112,6 +112,7 @@ def arguments(config: dict, engine: str = "vllm") -> list[str]:
             if (old := config.get("legacy_max_new_tokens"))
             else []
         ),
+        *(["--legacy-max-num-seqs", *map(str, old)] if (old := config.get("legacy_max_num_seqs")) else []),
     ]
 
 

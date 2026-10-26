@@ -76,11 +76,12 @@ def user_text(
     page_count: int | None = None,
     pages: list[int] | None = None,
     after: str | None = None,
+    schema_last: bool = False,
 ) -> str:
     """The request text: the prepared schema, the instructions and, when given, the PDF's text layer.
     A request for part of a longer document (`page_count`) says which pages it shows: the one page
     `first_page`, or the listed `pages`. A request reading on a list begun on earlier pages gives the
-    last record read so far (`after`)."""
+    last record read so far (`after`). With `schema_last` the text layer comes first."""
     text = (
         "Extract every field from the attached document page image(s) according to the JSON schema below.\n\n"
         "JSON schema:\n"
@@ -110,7 +111,10 @@ def user_text(
         numbers = pages or range(first_page, first_page + len(page_texts))
         pairs = zip(numbers, page_texts, strict=True)
         layer = "\n\n".join(f"--- page {number} ---\n{page.strip()}" for number, page in pairs)
-        text += f"\n\nText layer of the document (may be incomplete; trust the images):\n{layer}"
+        heading = "Text layer of the document (may be incomplete; trust the images):"
+        if schema_last:
+            return f"{heading}\n{layer}\n\n{text}"
+        text += f"\n\n{heading}\n{layer}"
     return text
 
 
@@ -121,6 +125,62 @@ def split_schema(schema: dict, names: list[str]) -> dict:
         "properties": {key: value for key, value in schema["properties"].items() if key in names},
         "required": [key for key in schema.get("required", []) if key in names],
     }
+
+
+def own_definitions(schema: dict) -> dict:
+    """The schema with only the definitions its properties reach, directly or through other
+    definitions (a few fields of a tax return's schema need few of its 52 forms)."""
+    sections = [key for key in ("$defs", "definitions") if isinstance(schema.get(key), dict)]
+    reached: set[tuple[str, str]] = set()
+
+    def visit(node):
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            parts = ref[2:].split("/") if isinstance(ref, str) and ref.startswith("#/") else []
+            if len(parts) == 2 and parts[0] in sections and tuple(parts) not in reached:
+                reached.add((parts[0], parts[1]))
+                visit(schema[parts[0]].get(parts[1]))
+            for value in node.values():
+                visit(value)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
+
+    visit({key: value for key, value in schema.items() if key not in sections})
+    out = {}
+    for key, value in schema.items():
+        if key not in sections:
+            out[key] = value
+        elif kept := {name: node for name, node in value.items() if (key, name) in reached}:
+            out[key] = kept
+    return out
+
+
+# Longest schema text (characters, as the model reads it) asked beside a whole document when the full
+# schema is too long to be: the windowed pipeline's group size.
+SCHEMA_GROUP_CHARS = 24000
+
+
+def schema_groups(schema: dict, max_chars: int = SCHEMA_GROUP_CHARS) -> list[list[str]]:
+    """The top-level properties in schema order, grouped so that each group's schema, with only its own
+    definitions, is at most `max_chars` long as the model reads it; a longer property is a group alone."""
+    prepared = prepare_schema(schema)
+    groups: list[list[str]] = []
+    for name in prepared.get("properties") or {}:
+        trial = [*groups[-1], name] if groups else [name]
+        part = own_definitions(split_schema(prepared, trial))
+        if groups and len(json.dumps(part, indent=2)) <= max_chars:
+            groups[-1] = trial
+        else:
+            groups.append([name])
+    return groups
+
+
+def schema_beyond_window(schema: dict, identity: dict) -> bool:
+    """Whether the schema as the model reads it (a few characters a token) would take more than half of
+    the engine's window, leaving too little for a document and its answer."""
+    window = (identity.get("generation") or {}).get("max_model_len")
+    return bool(window) and len(json.dumps(prepare_schema(schema), indent=2)) > 2 * window
 
 
 def cut_off_table(partial: dict, schema: dict, raw: str = "") -> str | None:
@@ -854,7 +914,17 @@ def beyond_limits(images: list, texts: tuple, identity: dict) -> bool:
 
 
 def _ask_document(
-    document, schema, snapshot, texts, store, dpi, backend, max_tokens=None, pages=None, ocr_text=False
+    document,
+    schema,
+    snapshot,
+    texts,
+    store,
+    dpi,
+    backend,
+    max_tokens=None,
+    pages=None,
+    ocr_text=False,
+    schema_last=False,
 ):
     """One request for the whole document, or for the listed `pages` (numbers from 1), with output
     limited to `max_tokens` when given. A request too long for the model's window is retried with
@@ -897,6 +967,7 @@ def _ask_document(
             "texts": digest(shown),
             **({"max_tokens": max_tokens} if max_tokens else {}),
             **({"pages": list(pages)} if pages else {}),
+            **({"schema_last": True} if schema_last else {}),
         }
         task = CitedTask(
             task_id=digest(identity),
@@ -909,6 +980,7 @@ def _ask_document(
             page_numbers=tuple(pages or ()),
             page_count=count if pages else None,
             aliases=_aliases(identity, backend),
+            schema_last=schema_last,
         )
         refused = beyond_limits(images, shown, backend.identity)
         if refused:
@@ -950,9 +1022,11 @@ def _answer(
     max_tokens=None,
     pages=None,
     ocr_text=False,
+    schema_last=False,
 ):
     """The answer to `schema`, every request it took as (label, generation, read by pages), and the
-    whole-document request's task (scanned pages shown with their OCR text when `ocr_text`).
+    whole-document request's task (scanned pages shown with their OCR text when `ocr_text`, and the
+    document before the schema when `schema_last`).
 
     Tables are read page by page when one request cannot hold them: an answer cut off at the output
     limit while writing a top-level list of records completes that list, and a document too long for
@@ -971,7 +1045,7 @@ def _answer(
     from docextract.contracts import digest
 
     task, generation = _ask_document(
-        document, schema, snapshot, texts, store, dpi, backend, max_tokens, pages, ocr_text
+        document, schema, snapshot, texts, store, dpi, backend, max_tokens, pages, ocr_text, schema_last
     )
     partial = parse_answer(generation.raw_text)
     too_long = generation.finish_reason == "input_limit" and depth == 0
@@ -1018,6 +1092,7 @@ def _answer(
             else REST_MAX_TOKENS,
             pages=edge_pages(len(images)) if too_long else pages,
             ocr_text=ocr_text,
+            schema_last=schema_last,
         )
 
     if too_long and missing:
@@ -1204,6 +1279,46 @@ def _read_on(table, rows, done, start, images, texts, backend, span):
     return records, steps
 
 
+def _answer_groups(document, schema, snapshot, texts, store, dpi, backend, ocr_text=False):
+    """The answer to a schema too long to share a request with the document (`schema_beyond_window`),
+    a group of its top-level properties at a time (`schema_groups`), each with only its own definitions
+    and the whole document shown before it, so the requests share the document as a prompt prefix.
+    Every request it took, and the first group's task; None when the document does not fit one
+    request even beside a group. (Answered window by window instead, a tax return took about 1,000
+    requests of some 8,000 prompt tokens each, mostly answering that the window held nothing.)"""
+    from docextract.cited import Pending
+
+    prepared = prepare_schema(schema)
+    data, steps, first, pending = {}, [], None, []
+    for number, names in enumerate(schema_groups(prepared), 1):
+        part = own_definitions(split_schema(prepared, names))
+        try:
+            answer, more, task = _answer(
+                document,
+                part,
+                snapshot,
+                texts,
+                store,
+                dpi,
+                backend,
+                label=f"fields group {number}",
+                depth=1,
+                ocr_text=ocr_text,
+                schema_last=True,
+            )
+        except Pending as waiting:  # a batch run queues every group at once
+            pending.extend(waiting.task_ids)
+            continue
+        if more[0][1].finish_reason == "input_limit":
+            return None
+        data.update({key: value for key, value in answer.items() if key in names})
+        steps += more
+        first = first or task
+    if pending:
+        raise Pending(pending)
+    return (data, steps, first) if steps else None
+
+
 def extract_oneshot(
     document: Path,
     schema: dict,
@@ -1226,7 +1341,9 @@ def extract_oneshot(
     resolution, down to 72 DPI). An answer cut off at the output limit while writing a top-level list
     of records is completed page by page, and a document that still does not fit has its lists of
     records read page by page (`_answer`). If it has none, or an answer cut off elsewhere cannot be
-    completed that way, `fallback()` (the windowed pipeline) answers instead when given.
+    completed that way, `fallback()` (the windowed pipeline) answers instead when given. A schema too
+    long to share a request with any document is asked a group of fields at a time (`_answer_groups`),
+    and the fallback answers only when the document does not fit even beside a group.
     """
     import shutil
 
@@ -1248,9 +1365,18 @@ def extract_oneshot(
     texts = tuple(pdf_page_texts(document)) if text_layer else ()
     store = page_images or workspace / "page-images"
     dpi = dpi or page_dpi(len(snapshot.pages))
-    data, steps, task = _answer(document, schema, snapshot, texts, store, dpi, backend, ocr_text=ocr_text)
+    grouped = None
+    if schema_beyond_window(schema, backend.identity):
+        grouped = _answer_groups(document, schema, snapshot, texts, store, dpi, backend, ocr_text)
+        if grouped is None and fallback is not None:
+            return fallback()
+    if grouped is not None:
+        data, steps, task = grouped
+    else:
+        data, steps, task = _answer(document, schema, snapshot, texts, store, dpi, backend, ocr_text=ocr_text)
     generation, by_pages = steps[0][1], steps[0][2]
-    if not by_pages and generation.finish_reason in ("input_limit", "length") and fallback is not None:
+    refused = generation.finish_reason in ("input_limit", "length")
+    if grouped is None and not by_pages and refused and fallback is not None:
         return fallback()
     # A replay of a run that stopped before this document's answer: nothing was read, so nothing is
     # filled in (not even check boxes the schema defines as false when blank).

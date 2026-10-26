@@ -419,7 +419,7 @@ def test_streaming_runner_stores_each_answer_and_assembles_documents_as_they_fin
         def __init__(self):
             self.queue, self.events = [], []
 
-        def submit(self, tasks):
+        def submit(self, tasks, first=False):
             self.queue.extend(tasks)
 
         def busy(self):

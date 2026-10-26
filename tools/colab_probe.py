@@ -55,6 +55,8 @@ VOLUME = "docextract-work"
 SYNC_MINUTES = 5
 # Scoring after the runner's own time limit, before the deadline of a detached run.
 SCORING_MINUTES = 30
+# What the VM's GPU is doing, sampled every 30 seconds into gpu.csv.
+GPU_SAMPLE = "timestamp,utilization.gpu,utilization.memory,power.draw,power.limit,memory.used,clocks.sm"
 
 
 def colab_env() -> dict:
@@ -413,11 +415,14 @@ def main():
         *(["--score-only"] if args.score_only else []),
         *(["--replay"] if args.replay else []),
     ]
-    # Setup and runner in a subshell that stops at the first failure; its exit code ends the log.
+    # Setup and runner in a subshell that stops at the first failure; its exit code ends the log. The
+    # GPU's use is sampled meanwhile (a run once kept its GPU at half its power with requests queued).
     command = (
+        f"nvidia-smi --query-gpu={GPU_SAMPLE} --format=csv -l 30 > {out}/gpu.csv 2>&1 & sampler=$!; "
         "( set -e; echo '== setup'; date; pip install -q uv; "
         "uv pip install --system -q -r runtimes/colab/requirements.txt; "
-        f"echo '== runner'; date; {shlex.join(runner)} ); echo \"== exit $?\"; date"
+        f"echo '== runner'; date; {shlex.join(runner)} ); code=$?; kill $sampler 2>/dev/null; "
+        'echo "== exit $code"; date'
     )
     if args.detach:
         command = detached_command(command, out, name, store, hours * 60)
@@ -474,7 +479,17 @@ def main():
                 break
     finally:
         copied = fetch(
-            session, out, local, ["answers.json", store, "run.log", *(["score.json"] if product else [])]
+            session,
+            out,
+            local,
+            [
+                "answers.json",
+                store,
+                "run.log",
+                "gpu.csv",
+                "run/ocr.json",
+                *(["score.json"] if product else []),
+            ],
         )
         if holder and holder.poll() is None:
             holder.kill()
