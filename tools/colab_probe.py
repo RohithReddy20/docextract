@@ -11,6 +11,12 @@ set COLAB_HOME to keep this project's account apart (`HOME=$COLAB_HOME colab usa
 
     uv run python tools/colab_probe.py manifests/probes/<name>.json --gpu A100 --confirm-units <estimate>
     uv run python tools/colab_probe.py manifests/probes/<name>.json --dry-run   # CPU VM: setup only
+
+With `--detach` this machine is needed only to start the run: the VM copies its answer folder to the
+Modal volume every few minutes and at the end, stops at a hard deadline, and releases itself;
+`--collect` later copies that folder here (and shows how far the run has got). Colab takes the VM
+back about 20 minutes after the last request from outside, even with its kernel busy (full-27b's
+first attempt), so a detached run longer than that needs something else to keep talking to it.
 """
 
 from __future__ import annotations
@@ -44,6 +50,11 @@ POLL_SECONDS = 60
 COPY_EVERY = 5  # polls between copies of the answers
 REMOTE = "/content/docextract"
 MARK = "@@result "
+# A detached run's answer folder is kept on this Modal volume, under runs/colab/<name>/.
+VOLUME = "docextract-work"
+SYNC_MINUTES = 5
+# Scoring after the runner's own time limit, before the deadline of a detached run.
+SCORING_MINUTES = 30
 
 
 def colab_env() -> dict:
@@ -164,6 +175,53 @@ with open({out!r} + "/run.log", "a") as log:
         start_new_session=True,
     ).wait()
 """
+
+
+def detached_command(command: str, out: str, name: str, store: str, deadline: float) -> str:
+    """`command` run without this machine: the answer folder copied to the Modal volume every few
+    minutes and once more at the end, the job stopped at `deadline` minutes, and the VM released
+    (Colab's own unassign, which needs no credentials); the Modal sign-in is removed first."""
+    target = f"runs/colab/{name}"
+    # The Modal client in a folder of its own, apart from the packages the runner needs.
+    put = f"PYTHONPATH=/root/modal-cli python3 -m modal volume put -f {VOLUME}"
+    sync = (
+        f"cd {out}; for f in run.log answers.json score.json; do [ -f $f ] && {put} $f {target}/$f; done; "
+        f"[ -f {store} ] && gzip -c {store} > /tmp/store.gz && {put} /tmp/store.gz {target}/{store}.gz; true"
+    )
+    sync = f"bash -c {shlex.quote(sync)} >/dev/null 2>&1"
+    return (
+        "pip install -q --target /root/modal-cli modal; "
+        f"( while sleep {SYNC_MINUTES * 60}; do {sync}; done ) & syncer=$!; "
+        f"timeout -k 120 {deadline:.0f}m bash -c {shlex.quote(command)}; "
+        f'[ $? -eq 124 ] && echo "== exit 124" && echo "stopped at the deadline"; kill $syncer; '
+        f"{sync}; rm -f /root/.modal.toml; curl -s -X POST http://$TBE_RUNTIME_ADDR/unassign"
+    )
+
+
+def collect_detached(name: str, store: str, local: Path) -> None:
+    """Copy a detached run's folder from the Modal volume here and show the end of its log."""
+    with tempfile.TemporaryDirectory() as scratch:
+        subprocess.run(
+            ["modal", "volume", "get", "--force", VOLUME, f"runs/colab/{name}/", scratch],
+            check=True,
+            capture_output=True,
+        )
+        for path in (path for path in Path(scratch).rglob("*") if path.is_file()):
+            relative = path.relative_to(scratch).as_posix()
+            wanted = relative.split(f"{name}/", 1)[-1]
+            target = local / wanted.removesuffix(".gz")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if wanted == store + ".gz":
+                data = gzip.decompress(path.read_bytes())
+                # Copied while the runner appended to it: a last line cut short is left out.
+                target.write_bytes(data[: data.rfind(b"\n") + 1])
+            else:
+                shutil.copyfile(path, target)
+            print(f"copied {wanted}")
+    if (local / "run.log").exists():
+        lines = (local / "run.log").read_text(errors="replace").replace("\r", "\n").splitlines()
+        progress = [line for line in lines if "documents finished" in line or line.startswith("== ")]
+        print("\n".join(line[:200] for line in (progress[-3:] or lines[-3:])))
 
 
 def fetch(session: str, out: str, local: Path, names: list[str]) -> list[str]:
@@ -289,6 +347,10 @@ def main():
     parser.add_argument(
         "--reuse", action="store_true", help="start on this run's VM from an earlier job (packages, model)"
     )
+    parser.add_argument(
+        "--detach", action="store_true", help="start the run, then leave it to finish and save on its own"
+    )
+    parser.add_argument("--collect", action="store_true", help="copy a detached run's folder here")
     args = parser.parse_args()
 
     config = json.loads(args.config.read_text())
@@ -302,6 +364,12 @@ def main():
     minutes = args.minutes or config.get("limit_minutes") or config["gpu_hours"] * 60
     local = ROOT / "artifacts" / "probes" / name
     local.mkdir(parents=True, exist_ok=True)
+    if args.collect:
+        collect_detached(name, store, local)
+        return
+    modal_config = Path(os.environ.get("MODAL_CONFIG_PATH", Path.home() / ".modal.toml"))
+    if args.detach and (args.attach or not modal_config.exists()):
+        raise SystemExit("--detach starts a new run and needs this machine's Modal sign-in")
     engine = {**config.get("engine", config), **json.loads(args.engine)}
     if not args.dry_run and engine.get("quantization") == "fp8" and args.gpu not in FP8_GPUS:
         raise SystemExit(NO_FP8.format(args.gpu))
@@ -315,10 +383,12 @@ def main():
         hours, gpu_flag = 0.25, []
         print("dry run on a CPU VM: setup and requests only, about 0.1-0.3 compute units")
     else:
-        hours, gpu_flag = (minutes + SETUP_MINUTES) / 60, ["--gpu", args.gpu]
+        extra = SCORING_MINUTES if args.detach else 0  # the deadline also covers scoring
+        hours, gpu_flag = (minutes + SETUP_MINUTES + extra) / 60, ["--gpu", args.gpu]
         estimate = math.ceil(hours * units_per_hour(args.gpu) * 10) / 10  # as printed
         print(
-            f"{args.gpu}: at most {minutes:.0f} minutes of probe plus about {SETUP_MINUTES} of setup, "
+            f"{args.gpu}: at most {minutes:.0f} minutes of probe plus about {SETUP_MINUTES} of setup"
+            f"{f' and {extra} of scoring' if extra else ''}, "
             f"about {estimate:.1f} compute units at the expected rate"
         )
         if args.confirm_units < estimate:
@@ -349,16 +419,30 @@ def main():
         "uv pip install --system -q -r runtimes/colab/requirements.txt; "
         f"echo '== runner'; date; {shlex.join(runner)} ); echo \"== exit $?\"; date"
     )
+    if args.detach:
+        command = detached_command(command, out, name, store, hours * 60)
     session = f"docextract-{name}"
     started = time.time()
     # The driver's own SIGTERM releases the VM like Ctrl-C does (SIGKILL leaves it running).
     signal.signal(signal.SIGTERM, interrupt)
     if not (args.attach or args.reuse):
         colab("new", "-s", session, *gpu_flag, timeout=900)
-    holder = None
+    holder, detached = None, False
     try:
+        if args.detach:
+            # Removed on the VM before it releases itself.
+            colab("upload", "-s", session, str(modal_config), "/root/.modal.toml", capture=True)
         if not args.attach:
             holder = launch(args, session, command, out, local, hours, store)
+        if args.detach:
+            detached = True
+            print(
+                f"detached: the VM saves to the Modal volume {VOLUME} (runs/colab/{name}/) every "
+                f"{SYNC_MINUTES} minutes and releases itself by {hours * 60:.0f} minutes; copy it here "
+                "with --collect",
+                flush=True,
+            )
+            return
         polls = failures = answers = 0
         limit = started + (minutes + (0 if args.attach else SETUP_MINUTES) + 10) * 60
         while True:
@@ -397,7 +481,9 @@ def main():
         if "answers.json" not in copied and not product and (local / store).exists():
             # The runner did not finish its own summary (stopped or failed): build it from the copy.
             (local / "answers.json").write_text(json.dumps({"outputs": collect(local / "answers.jsonl")}))
-        if args.keep:
+        if detached:
+            pass
+        elif args.keep:
             print(f"VM left running: stop it with `colab stop -s {session}`")
         else:
             for _ in range(2):  # the VM bills until it is released

@@ -371,6 +371,21 @@ are from the official `ExtractEvaluator` in a separate process.
   and RRC forms by 0.08-0.15. Scaled to the benchmark's 252 short and 98 medium documents, long ones
   unchanged: about 0.953 (+-0.007 from the sample). `manifests/colab/q27-1.json`.
 
+- **The whole benchmark with the 27B (full-27b, Colab G4), stopped at 224 minutes.** q27-1's 60
+  answers were reused; 336 of 370 documents finished: value F1 against the 9B's best scores on the
+  same documents 0.926 -> **0.959** (short 0.941 -> 0.966, medium 0.890 -> 0.947, long 0.847 -> 0.889
+  on 12; 180 better, 46 worse; largest losses a GSA price list 1.00 -> 0.82 and an FTX creditor
+  matrix 0.86 -> 0.68). With the 9B's best scores for the 34 unfinished documents the benchmark
+  estimate is about **0.956**. The 34 were 14 Form 1040 returns, whose one-shot answer is cut off
+  and falls back to windows (full-1 needed 175-1,276 calls of about 8,000 prompt tokens and 35
+  answer tokens for each), and 20 long documents read page by page. The GPU was not used well:
+  power 310-350 W of 600 and memory bandwidth 29-46% while vLLM held 32 sequences (the
+  configuration's cap) with 58 more queued and the KV cache 69% full; 16-18% of prompt tokens came
+  from the prefix cache; the scanned pages were read again by OCR (17 minutes) before any answer.
+  A first attempt detached from this machine lost its VM about 20 minutes after the driver's last
+  request, as the model finished loading: Colab takes back a VM nothing outside talks to, even with
+  its kernel busy. `manifests/colab/full-27b.json`.
+
 - **Estimate from the targeted runs.** full-1's per-document scores with each run's documents
   replaced (lists-1's filings and customs form, long-2's contracts, out32-1, out32-2, ocr-2): value F1
   0.913 -> about **0.926** (short 0.940 -> 0.942, medium 0.855 -> 0.895, long 0.850 -> 0.868), from 120
