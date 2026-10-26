@@ -1,0 +1,42 @@
+manifests/colab/full-27b.json
+  s_eaf722cf290d93::t_f6b852625e7863 1-398
+tools/colab_probe.py
+  s_eaf722cf290d93::t_ff1e904abc158a 198-206
+  s_eaf722cf290d93::t_e7bddb0fcb24df 28
+  s_eaf722cf290d93::t_4cf82ac175a1c8 368-372
+docs/model-trials.md
+  s_eaf722cf290d93::t_71d6350be78ea8 353-363
+  s_eaf722cf290d93::t_990c29e647f91c 364-373
+manifests/colab/cont-3.json
+  s_eaf722cf290d93::t_66798e7ad82e24 1-36
+src/docextract/vllm_engine.py
+  s_eaf722cf290d93::t_3398c74dbedd35 60
+src/docextract/batch.py
+  s_eaf722cf290d93::t_cb74b6952f16ed 154
+tools/extract_remote.py
+  s_eaf722cf290d93::t_3398c74dbedd35 201
+manifests/colab/q27-1.json
+  s_eaf722cf290d93::t_3d372eb96a97c5 1-88
+manifests/model-research.json
+  s_eaf722cf290d93::t_03c0c9e5e70f1c 226-580
+manifests/colab/cont-2.json
+  s_eaf722cf290d93::t_2d5357276799c2 1-36
+src/docextract/remote.py
+  s_eaf722cf290d93::t_3398c74dbedd35 343-348
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "80682e43a0fcf993daabf23d125185751af4edec",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "“Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
