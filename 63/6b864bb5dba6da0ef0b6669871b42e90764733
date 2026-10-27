@@ -1,0 +1,23 @@
+manifests/colab/full-27b-last.json
+  s_eaf722cf290d93::t_0d6d8ae0a5e0b8 1-51
+docs/model-trials.md
+  s_eaf722cf290d93::t_74630f18e2c8d5 402-415
+README.md
+  s_eaf722cf290d93::t_212abe2a7a2c95 38-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "636b864bb5dba6da0ef0b6669871b42e90764733",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
