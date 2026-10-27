@@ -399,6 +399,20 @@ are from the official `ExtractEvaluator` in a separate process.
   **0.953**; the 9B's best of several runs, picked with the answers, would flatter it to 0.957.
   OCR of the 34 documents' 337 scanned pages took five minutes. `manifests/colab/full-27b-rest.json`.
 
+- **The last 20 documents (full-27b-last, Colab G4), three sessions resumed from the stored
+  answers.** The 40-minute first session finished 7, the 50-minute second 11, the third the last 2
+  in 21 minutes. The long documents are mostly 13F holdings tables of 55-123 pages read page by
+  page, each page about 6,500-7,000 answer tokens (37 holdings of 17 lines each); generation, with
+  the KV cache 99% full and the GPU at 100%, not request count, set the time. The last two
+  documents' requests read on from cut-off answers one after another, at about 105 tokens a second
+  each. Against full-1's single run on the same 20: a statement full-1 had all but failed 0.052 ->
+  0.999, three medium documents 0.68-0.71 -> 0.99, returns 0.87-0.94 -> 0.93-0.98; two 13F filings
+  fell 0.985 -> 0.927 and 0.948. **The 27B on all 370 documents: value F1 0.9594** (short 0.9665,
+  medium 0.9523, long 0.906), about fourth on the leaderboard (96.17, 96.08, 96.07, then 95.65). The
+  answers come from four sessions and two versions of the code (full-27b before the schema groups
+  and admission changes, the rest after), and 71 of the documents were examined during development
+  (`manifests/dev-seen-cases.json`). `manifests/colab/full-27b-last.json`.
+
 - **Estimate from the targeted runs.** full-1's per-document scores with each run's documents
   replaced (lists-1's filings and customs form, long-2's contracts, out32-1, out32-2, ocr-2): value F1
   0.913 -> about **0.926** (short 0.940 -> 0.942, medium 0.855 -> 0.895, long 0.850 -> 0.868), from 120

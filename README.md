@@ -35,7 +35,13 @@ from docparse. Target benchmark: [ExtractBench](https://github.com/run-llama/Ext
 - **Measured about ExtractBench** ([workload](manifests/workload-inventory.json)): 24% of its 4,869
   pages have no text layer and 130 of 370 documents are entirely image-only; schemas reach ~158K
   tokens (56 documents exceed 12K); 20 long documents hold most of the answer volume.
-- **ExtractBench, full benchmark (current method):** value F1 **0.913** over all 370 documents
+- **ExtractBench, full benchmark with Qwen3.8-27B (FP8, one Colab G4):** value F1 **0.959** over
+  all 370 documents (short 0.967, medium 0.952, long 0.906; the 299 documents never looked at during
+  development 0.961), grounded F1 0.500 and page F1 0.628, with the official evaluator. On
+  ExtractBench's leaderboard (October 2026) that is about 4th of 50 systems (the top three score
+  96.17, 96.08 and 96.07). Self-run, not an official submission; the answers come from four
+  resumed sessions and two versions of the code ([details](docs/model-trials.md)).
+- **ExtractBench, full benchmark with Qwen3.5-9B:** value F1 **0.913** over all 370 documents
   (short 0.940, medium 0.855, long 0.850; the 292 documents never looked at during development
   0.914), grounded F1 0.530 and page F1 0.637 ([record](manifests/trials/full-1.json)), with the
   official evaluator. On ExtractBench's leaderboard (October 2026) that is 14th of 50 systems and
