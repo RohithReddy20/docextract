@@ -35,6 +35,21 @@ def require_remote() -> str:
     raise RemoteOnlyError("Model downloads and execution are permitted only on Kaggle, Modal or Colab")
 
 
+# Host memory a preprocessed page image takes while its request is admitted: 64 whole-document
+# requests of up to 64 pages (about 4,100 images) filled a 52 GB VM.
+IMAGE_BYTES = 13_000_000
+
+
+def admitted_images(share: float = 0.1) -> int:
+    """Page images admitted at once: a tenth of this machine's memory, at least 192 (the fixed number
+    before, which on a 176 GB VM let six 30-page requests run while the GPU waited)."""
+    try:
+        memory = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (AttributeError, OSError, ValueError):
+        return 192
+    return max(192, int(share * memory / IMAGE_BYTES))
+
+
 class VllmCitedEngine:
     def __init__(
         self,
@@ -54,7 +69,7 @@ class VllmCitedEngine:
         prefix_caching=True,
         quantization=None,
         kv_cache_dtype=None,
-        queued_images=192,
+        queued_images=None,
     ):
         platform = require_remote()
         if arm not in ("a", "b", "c", "d"):
@@ -112,7 +127,7 @@ class VllmCitedEngine:
         # Page images of the admitted requests, running or waiting inside vLLM, which holds each
         # one's preprocessed pixels in host memory until it finishes: with whole-document requests
         # of up to 64 pages, 64 admitted requests filled a 52 GB VM. One request is always admitted.
-        self.queued_images, self.images_of = queued_images, {}
+        self.queued_images, self.images_of = queued_images or admitted_images(), {}
         self.constrained = constrained
         self.arm, self.max_model_len, self.max_new_tokens = arm, max_model_len, max_new_tokens
         self.identity = {

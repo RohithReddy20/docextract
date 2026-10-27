@@ -386,6 +386,19 @@ are from the official `ExtractEvaluator` in a separate process.
   request, as the model finished loading: Colab takes back a VM nothing outside talks to, even with
   its kernel busy. `manifests/colab/full-27b.json`.
 
+- **The unfinished documents with the waste removed (full-27b-rest, Colab G4).** A schema too long to
+  share a request with the document is now asked about 25 groups of fields at a time over the whole
+  document; 64 requests at once; a document's next requests ahead of documents not yet begun; and
+  page images admitted by the VM's memory (a fixed 192 had let six 30-page requests run at once).
+  14 of the 34 finished in 45 minutes on the same VM: eight Form 1040 returns took **25 requests**
+  each (full-1: 175-1,118) and scored 0.945-0.984 (the 9B's best 0.884-0.962). The GPU drew a median
+  534 W of 600 (310-350 W before) with a median 45 requests running; the KV cache, 89-99% full, was
+  now the limit. With full-27b, the 27B finished 350 of 370 documents: 0.927 -> **0.960** against the
+  9B's best (short 0.941 -> 0.967, medium 0.896 -> 0.949, long 0.847 -> 0.889 on 12). For the other
+  20 (six returns, 14 long documents) full-1's single run gives a benchmark estimate of about
+  **0.953**; the 9B's best of several runs, picked with the answers, would flatter it to 0.957.
+  OCR of the 34 documents' 337 scanned pages took five minutes. `manifests/colab/full-27b-rest.json`.
+
 - **Estimate from the targeted runs.** full-1's per-document scores with each run's documents
   replaced (lists-1's filings and customs form, long-2's contracts, out32-1, out32-2, ocr-2): value F1
   0.913 -> about **0.926** (short 0.940 -> 0.942, medium 0.855 -> 0.895, long 0.850 -> 0.868), from 120
