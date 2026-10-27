@@ -1,0 +1,22 @@
+docs/model-trials.md
+  s_eaf722cf290d93::t_069d21041cec68 389-396,400-401
+  s_eaf722cf290d93::t_47cba90cf13e3d 397-399
+src/docextract/vllm_engine.py
+  s_eaf722cf290d93::t_0052dab31dd56d 38-52,72,130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3eae3479b6b8ea44e7e8361016837fb22b260aa8",
+  "prompts": {},
+  "sessions": {
+    "s_eaf722cf290d93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4cfd5f6-1053-41c2-8979-89623463790d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Rohith <rohithreddyrohi18@gmail.com>"
+    }
+  }
+}
